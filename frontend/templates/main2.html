@@ -1,0 +1,158 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MisiónEmprende UDD - El Juego</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Montserrat (Textos) y Russo One (Títulos Gamer) -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <!-- CSS Personalizado -->
+    <link rel="stylesheet" href="{% static 'misionemprende/css/main2.css' %}">
+</head>
+<body class="flex flex-col">
+
+    <!-- Header Global Gamer -->
+    {% include "phases/globalHeader.html" %}
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-6xl relative">
+        
+        <!-- Notificaciones Toast Gamer -->
+         <div id="help-tab" onclick="app.toggleHelp()" class="hidden fixed left-0 top-1/2 transform -translate-y-1/2 bg-pink-600 text-white p-3 rounded-r-xl shadow-[5px_0_15px_rgba(212,15,125,0.4)] cursor-pointer z-50 hover:bg-pink-500 border-y-2 border-r-2 border-pink-400 transition-colors flex items-center group">
+            <i class="fas fa-question-circle text-2xl group-hover:rotate-12 transition-transform"></i>
+            <span class="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs group-hover:ml-2 transition-all duration-300 font-bold text-sm">Solicitar Ayuda</span>
+        </div>
+
+        <div id="help-modal" class="hidden fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center fade-in">
+            <div class="bg-gray-900 border-2 border-pink-500 rounded-2xl p-8 max-w-2xl w-full mx-4 relative shadow-[0_0_40px_rgba(212,15,125,0.3)]">
+                
+                <button onclick="app.toggleHelp()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+                
+                <h3 class="text-3xl font-bold text-white mb-4 gamer-font"><i class="fas fa-satellite-dish text-pink-500 mr-3 animate-pulse"></i> Transmisión de Apoyo</h3>
+                <p id="help-text" class="text-gray-300 mb-6 font-semibold">Instrucciones de la base: Revisen el siguiente material para completar su objetivo actual.</p>
+                
+                <div class="w-full aspect-video bg-gray-800 rounded-xl border border-gray-700 flex items-center justify-center text-gray-500 relative overflow-hidden group cursor-pointer hover:border-pink-500 transition-colors">
+                    <i class="fas fa-play-circle text-6xl opacity-50 group-hover:opacity-100 group-hover:text-pink-500 transition-all group-hover:scale-110"></i>
+                    <span class="absolute bottom-4 font-mono text-sm">[ Aquí irá tu <video> o <img> ]</span>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Ícono Ayuda -->
+        <div id="comm-overlay" class="hidden fixed inset-0 bg-slate-900/85 backdrop-blur-md z-[150] transition-opacity duration-1000 opacity-0 pointer-events-none"></div>
+        <div id="base-communicator-btn" onclick="app.toggleHelp()" class="hidden fixed z-[160] cursor-pointer group hud-button flex items-center gap-3 whitespace-nowrap transition-all duration-1000 ease-in-out">
+            
+            <span id="communicator-text" class="font-bold text-lg pl-5 pr-2 gamer-font tracking-widest text-pink-300 drop-shadow-[0_0_10px_rgba(236,72,153,1)] uppercase transition-opacity duration-1000">
+                Ayuda
+            </span>
+            
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-purple-700 flex items-center justify-center shadow-[0_0_25px_rgba(212,15,125,0.8)] transition-transform duration-1000 group-hover:scale-110">
+                <i class="fas fa-question text-white text-2xl"></i>
+            </div>
+        </div>
+
+        <div id="transmission-modal" class="hidden fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center">
+            <div id="transmission-content" class="bg-gray-900 border-4 border-pink-600 rounded-3xl p-10 max-w-2xl w-full mx-4 relative shadow-[0_0_60px_rgba(212,15,125,0.4)] text-center">
+                
+                <button id="btn-close-transmission" onclick="app.toggleHelp()" class="hidden absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+
+                <div class="mb-4 inline-block">
+                    <i class="fas fa-broadcast-tower text-5xl text-pink-500 animate-pulse"></i>
+                </div>
+                
+                <h2 id="trans-title" class="text-4xl font-bold mb-4 gamer-font text-white uppercase tracking-wider">
+                    Mensaje
+                </h2>
+                
+                <p id="trans-desc" class="text-xl text-gray-300 font-medium mb-8 leading-relaxed">
+                    Texto dinámico aquí...
+                </p>
+
+                <div id="trans-media" class="hidden w-full aspect-video bg-gray-800 rounded-xl border-2 border-gray-700 flex items-center justify-center text-gray-500 mb-6 relative overflow-hidden">
+                    <!-- <span class="font-mono text-sm">[ Aquí irá tu video/imagen ]</span> -->
+                </div>
+                
+                <div id="trans-timer-container" class="hidden relative flex items-center justify-center mx-auto w-24 h-24">
+                    <div class="absolute w-full h-full border-4 border-t-pink-500 border-r-transparent border-b-purple-500 border-l-transparent rounded-full animate-spin-slow"></div>
+                    <div class="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center shadow-inner z-10">
+                        <span id="trans-countdown" class="text-3xl font-bold text-white gamer-font">5</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="toast" class="fixed top-24 right-4 bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-x-full transition-transform duration-500 z-[200] flex items-center border-2 border-white">
+            <i class="fas fa-check-circle text-2xl mr-3"></i>
+            <span id="toast-message" class="font-bold text-lg">Mensaje</span>
+        </div>
+
+
+        <!-- Overlay de Cuenta Regresiva Dramática -->
+        <div id="dramatic-countdown" class="hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-[100] flex flex-col items-center justify-center">
+            <h2 class="text-white gamer-font text-3xl mb-4 animate-bounce">¡Prepárense!</h2>
+            <div id="countdown-number" class="text-white gamer-font text-[15rem] leading-none animate-pulse text-shadow-lg">3</div>
+        </div>
+
+        <!-- Overlay de Transición por Fin de Fase (Nuevo) -->
+        <div id="phase-transition-overlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-[100] flex flex-col items-center justify-center p-4 text-center">
+            <h2 class="text-white gamer-font text-5xl mb-6 text-yellow-400 animate-bounce">¡TIEMPO AGOTADO!</h2>
+            <p class="text-gray-300 text-xl mb-8">Las palabras correctas eran: <span id="correct-words-display" class="font-bold text-pink-500"></span>.</p>
+            <p class="text-white text-3xl font-bold mb-4">Continuando la Misión en...</p>
+            <div id="transition-countdown-number" class="text-white gamer-font text-[8rem] leading-none animate-pulse text-shadow-lg">10</div>
+        </div>
+
+        <!-- Bienvenida (REDDISEÑADA) -->
+        {% include "phases/viewWelcome.html" %}
+
+        <!-- Admin-->
+        {% include "phases/admin.html" %}
+
+        <!-- Registros de Equipos -->
+        {% include "phases/loginEquipos.html" %}
+
+        <!-- Fase 1: Elección y ambos juegos -->
+        {% include "phases/Fase1_rompehieloysopadeletras.html" %}
+
+        <!-- Fase 2: Temas, personas y Bubble Map-->
+        {% include "phases/Fase2_temaPersonasBubblemap.html" %}
+
+        <!-- Fase 3: Creatividad con LEGO -->
+        {% include "phases/Fase3_lego.html" %}
+
+        <!-- Fase 4: Pitch y Evaluación -->
+        {% include "phases/Fase4_pitchyevaluacion.html" %}
+
+        <!-- Podio Final -->
+        {% include "phases/podioFinal.html" %}
+
+        <!-- Profesor -->
+        {% include "phases/profesor.html" %}
+
+        <!-- Transiciones -->
+        {% include "phases/transiciones.html" %}
+
+    </main>
+
+    <!-- Elementos de Audio (Placeholders - Reemplazar 'src' con archivos reales en Django) -->
+    <audio id="sfx-click" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" preload="auto"></audio>
+    <audio id="sfx-success" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto"></audio>
+    <audio id="sfx-countdown" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3" preload="auto"></audio>
+    <audio id="sfx-fanfare" src="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3" preload="auto"></audio>
+    <audio id="sfx-error" src="https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3" preload="auto"></audio>
+    <audio id="sfx-nose" src="{% static 'misionemprende/audio/fnaf_nose.mp3' %}" preload="auto"></audio>
+
+    <!-- Script Lógica de la Aplicación -->
+    <script src="{% static 'misionemprende/js/main2.js' %}"></script>
+</body>
+</html>

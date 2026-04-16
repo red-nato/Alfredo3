@@ -1,0 +1,53 @@
+{% load static %} 
+        <section id="view-login" class="fade-in">
+            <div class="game-card p-8 sm:p-12">
+                <div class="flex justify-between items-center mb-6 border-b pb-4">
+                    <h3 class="text-2xl font-bold text-gray-800 gamer-font">Registro de equipo</h3>
+                    <button onclick="app.showView('view-welcome')" class="text-gray-400 hover:text-black transition"><i class="fas fa-times"></i></button>
+                </div>
+                
+                <div class="mb-6 flex flex-col md:flex-row gap-10">
+                    <div class="w-full md:w-2/3">
+                        <label class="block text-gray-700 font-bold mb-2 uppercase text-sm tracking-wider">Nombre del Equipo</label>
+                        <input type="text" id="input-team-name" maxlength="30" class="w-full p-4 border-2 border-gray-300 bg-white rounded-xl focus:border-pink-500 focus:ring-4 focus:ring-pink-200 transition text-lg font-bold text-gray-800" placeholder="Ej: Team Estrellita">
+                    </div>
+                    <div class="w-full md:w-1/3">
+                        <label class="block text-gray-700 font-bold mb-2 uppercase text-sm tracking-wider">Código de Sesión</label>
+                        <input type="text" id="input-code" maxlength="6" oninput="this.value = this.value.toUpperCase();" class="w-full p-4 border-2 border-gray-300 bg-white rounded-xl focus:border-pink-500 focus:ring-4 focus:ring-pink-200 transition text-lg font-bold text-gray-800" placeholder="Ej: AB1234">
+                    </div>
+                </div>
+                    <div class="mb-8">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-gray-700 font-bold uppercase text-sm tracking-wider">Integrantes (Máx 8)</label>
+                        <span id="member-count" class="bg-pink-100 text-pink-800 text-xs font-bold px-2 py-1 rounded-full">0/8</span>
+                    </div>
+                    
+                    <div id="members-list" class="space-y-2 mb-4 max-h-48 overflow-y-auto p-2 bg-gray-50 rounded-xl">
+                        <!-- Lista dinámica -->
+                    </div>
+
+                    <!-- MEJORA RESPONSIVE: gap-2 en móvil, md:flex-row en tablet/desktop -->
+                    <div class="flex flex-col md:flex-row gap-2 bg-white p-2 rounded-xl shadow-inner border">
+                        <input type="text" id="input-member-name" class="flex-grow p-3 bg-white border-none focus:ring-0 text-gray-800 font-semibold" placeholder="Nombre ">
+                        <select id="input-member-career" class="p-3 border-l bg-transparent text-gray-600 text-sm font-semibold focus:ring-0 md:border-l md:w-auto w-full">
+                            <option value="">Especialidad...</option>
+                            <option value="Ingeniería">Ingeniería</option>
+                            <option value="Diseño">Diseño</option>
+                            <option value="Salud">Salud</option>
+                            <option value="Negocios">Negocios</option>
+                            <option value="Otra">Otra</option>
+                        </select>
+                        <button onclick="app.playSound('click'); app.addMember()" class="udd-gradient text-white w-full md:w-12 h-12 rounded-lg hover:bg-gray-700 flex items-center justify-center text-xl font-bold shadow transition hover:scale-105">+</button>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-100 p-4 rounded-xl mb-6 border-l-8 border-yellow-400 flex items-start">
+                    <i class="fas fa-satellite-dish text-yellow-600 text-xl mr-3 mt-1 animate-pulse"></i>
+                    <p class="text-sm text-yellow-800 font-semibold">Esperando sincronización global. La misión comenzará cuando todos los escuadrones estén listos.</p>
+                </div>
+
+                <button onclick="enviarEquipoAlBackend(); app.triggerTransition('Consejo' , 'Empezaremos el juego. Atentos porque el que termina antes gana más tokens' , 5 ,finishLogin() )" class="udd-gradient w-full text-white font-bold text-xl py-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" id="btn-start-game">
+                    <i class="fas fa-check-circle mr-2"></i> Confirmar y Esperar
+                </button>
+            </div>
+        </section>

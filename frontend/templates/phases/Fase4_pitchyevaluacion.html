@@ -1,0 +1,129 @@
+{%load static%}
+        <!-- ... (Contenido de Etapa 4 omitido para brevedad, no hay cambios aquí) ... -->
+        <section id="view-stage4" class="fade-in text-center pt-6">
+             <span class="bg-red-500 text-white text-xs font-bold uppercase px-3 py-1 rounded-full mb-4 inline-block shadow-lg">El Pitch Final</span>
+            <h2 class="text-4xl font-bold text-white mb-6 gamer-font text-shadow">Trabajaste en equipo para desarrollar una solución a un problema real. Ahora preséntalo y explica por qué vale la pena.</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                <!-- Guía Táctica con INPUTS -->
+                <div class="game-card p-8 text-left border-t-8 border-red-500 h-full overflow-y-auto max-h-[600px]">
+                    <h3 class="font-bold text-2xl mb-6 gamer-font text-gray-800"><i class="fas fa-clipboard-list mr-3 text-red-500"></i>Estructura</h3>
+                    <ul class="space-y-6 text-gray-700 font-semibold">
+                        <li class="bg-red-50 p-4 rounded-lg shadow-sm">
+                            <div class="flex items-start mb-2">
+                                <i class="fas fa-check-square text-red-500 mt-1 mr-3 text-xl"></i>
+                                <div><strong class="text-red-700">El Gancho:</strong><br><span class="text-sm">Captura su atención en 5 segundos. Sé breve.</span></div>
+                            </div>
+                            <textarea class="w-full mt-2 p-3 border-2 border-red-200 rounded-lg focus:border-red-500 focus:outline-none text-gray-800 text-sm" rows="2" placeholder="Inspírense entre ustedes..."></textarea>
+                        </li>
+                        <li class="bg-red-50 p-4 rounded-lg shadow-sm">
+                            <div class="flex items-start mb-2">
+                                <i class="fas fa-check-square text-red-500 mt-1 mr-3 text-xl"></i>
+                                <div><strong class="text-red-700">El Dolor:</strong><br><span class="text-sm">Identifiquen quién sufre y por qué.</span></div>
+                            </div>
+                            <textarea class="w-full mt-2 p-3 border-2 border-red-200 rounded-lg focus:border-red-500 focus:outline-none text-gray-800 text-sm" rows="2" placeholder="Describe el dolor del usuario..."></textarea>
+                        </li>
+                        <li class="bg-red-50 p-4 rounded-lg shadow-sm">
+                            <div class="flex items-start mb-2">
+                                <i class="fas fa-check-square text-red-500 mt-1 mr-3 text-xl"></i>
+                                <div><strong class="text-red-700">Solución:</strong><br><span class="text-sm">Tienes tu prototipo en LEGO. Explica cómo resuelve el dolor que identificaste.</span></div>
+                            </div>
+                            <textarea class="w-full mt-2 p-3 border-2 border-red-200 rounded-lg focus:border-red-500 focus:outline-none text-gray-800 text-sm" rows="2" placeholder="Explica tu solución..."></textarea>
+                        </li>
+                         <li class="bg-red-50 p-4 rounded-lg shadow-sm">
+                            <div class="flex items-start mb-2">
+                                <i class="fas fa-check-square text-red-500 mt-1 mr-3 text-xl"></i>
+                                <div><strong class="text-red-700">Call to Action:</strong><br><span class="text-sm">Una frase memorable que invite a unirse a la causa.</span></div>
+                            </div>
+                            <textarea class="w-full mt-2 p-3 border-2 border-red-200 rounded-lg focus:border-red-500 focus:outline-none text-gray-800 text-sm" rows="2" placeholder="Escribe tu frase de cierre..."></textarea>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Centro de Control -->
+                <div class="game-card p-8 flex flex-col justify-center items-center bg-gray-800 text-white border-4 border-gray-700 h-full relative overflow-hidden">
+                     <div class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                    <div class="text-center mb-8 relative z-10">
+                        <p class="text-gray-400 text-sm font-bold uppercase tracking-widest mb-2"><i class="fas fa-stopwatch mr-2"></i> Tiempo de Preparación</p>
+                        <!-- Timer Local de Preparación (Visual) -->
+                        <div id="prep-timer-display" class="text-6xl font-mono font-bold text-red-400 text-shadow-lg bg-black bg-opacity-50 px-6 py-2 rounded-xl border-2 border-red-900">06:00</div>
+                    </div>
+                    
+                    <button onclick="app.playSound('click'); app.startPitchMode()" class="bg-red-600 text-white font-bold text-2xl py-4 px-10 rounded-full hover:bg-red-700 w-full mb-4 shadow-lg hover:shadow-red-500/50 transform transition hover:scale-105 relative z-10 flex items-center justify-center group">
+                        <i class="fas fa-broadcast-tower mr-4 group-hover:animate-pulse"></i> INICIAR TRANSMISIÓN (90s)
+                    </button>
+                    <p class="text-sm text-gray-400 font-semibold relative z-10">Solo presionar cuando el equipo esté listo.</p>
+                </div>
+            </div>
+
+            <!-- Modal de Pitch Gamer -->
+            <div id="pitch-overlay" class="hidden fixed inset-0 bg-gray-900 z-[100] flex flex-col items-center justify-center text-white bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+                <div class="absolute inset-0 bg-gradient-to-b from-red-900 via-transparent to-black opacity-80"></div>
+                <div class="relative z-10 text-center">
+                    <div class="animate-pulse mb-8">
+                         <i class="fas fa-circle text-red-500 mr-2 text-xl"></i> <span class="text-red-500 font-bold tracking-wider uppercase">En Vivo</span>
+                    </div>
+                    <h2 class="text-5xl font-bold mb-6 gamer-font text-shadow-lg">¡ESTÁN EN EL AIRE!</h2>
+                    <div class="bg-black bg-opacity-50 p-8 rounded-3xl border-4 border-red-600 shadow-2xl mb-10">
+                        <div id="pitch-timer" class="text-[10rem] font-mono font-bold text-white leading-none text-shadow-xl">01:30</div>
+                    </div>
+                    <button onclick="app.playSound('click'); app.endPitch()" class="bg-transparent border-4 border-white text-white font-bold text-xl px-12 py-4 rounded-full hover:bg-white hover:text-black transition uppercase tracking-wider">
+                        <i class="fas fa-stop-circle mr-3"></i> Terminar Transmisión
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. ETAPA 5: EVALUACIÓN -->
+        <!-- ... (Contenido de Etapa 5 omitido para brevedad, no hay cambios aquí) ... -->
+        <section id="view-stage5" class="fade-in py-8">
+            <div class="game-card p-8 max-w-3xl mx-auto border-t-8 border-yellow-500">
+                 <h2 class="text-3xl font-bold mb-2 gamer-font text-gray-800 text-center">Evaluación entre Pares</h2>
+                 <p class="text-center text-gray-600 mb-8 font-semibold bg-yellow-100 py-2 rounded-lg">
+                    <i class="fas fa-info-circle mr-2"></i>Evalúen objetivamente al grupo: <strong>"Equipo Estrellita"</strong>
+                </p>
+
+                <div class="space-y-8">
+                    <!-- Slider Gamer 1 -->
+                    <div class="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                        <label class="flex justify-between font-bold text-gray-700 mb-4 uppercase text-sm tracking-wider">
+                            <span><i class="fas fa-users mr-2 text-yellow-500"></i>Coordinación de Equipo</span>
+                            <span class="text-yellow-600 font-black" id="val-1">3/5</span>
+                        </label>
+                        <input type="range" class="w-full h-4 bg-gray-300 rounded-full appearance-none cursor-pointer accent-yellow-500" min="1" max="5" step="1" value="3" oninput="document.getElementById('val-1').innerText = this.value + '/5'">
+                        <div class="flex justify-between text-xs text-gray-500 mt-2 font-bold uppercase"><span>Novatos</span><span>Élite</span></div>
+                    </div>
+                     <!-- Slider Gamer 2 -->
+                    <div class="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                        <label class="flex justify-between font-bold text-gray-700 mb-4 uppercase text-sm tracking-wider">
+                             <span><i class="fas fa-heart mr-2 text-pink-500"></i>Nivel de Empatía</span>
+                            <span class="text-pink-600 font-black" id="val-2">3/5</span>
+                        </label>
+                        <input type="range" class="w-full h-4 bg-gray-300 rounded-full appearance-none cursor-pointer accent-pink-500" min="1" max="5" step="1" value="3" oninput="document.getElementById('val-2').innerText = this.value + '/5'">
+                         <div class="flex justify-between text-xs text-gray-500 mt-2 font-bold uppercase"><span>Superficial</span><span>Profundo</span></div>
+                    </div>
+                    <!-- Slider Gamer 3 -->
+                     <div class="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                        <label class="flex justify-between font-bold text-gray-700 mb-4 uppercase text-sm tracking-wider">
+                             <span><i class="fas fa-lightbulb mr-2 text-blue-500"></i>Creatividad e Innovación</span>
+                            <span class="text-blue-600 font-black" id="val-3">3/5</span>
+                        </label>
+                        <input type="range" class="w-full h-4 bg-gray-300 rounded-full appearance-none cursor-pointer accent-blue-500" min="1" max="5" step="1" value="3" oninput="document.getElementById('val-3').innerText = this.value + '/5'">
+                         <div class="flex justify-between text-xs text-gray-500 mt-2 font-bold uppercase"><span>Convencional</span><span>Disruptivo</span></div>
+                    </div>
+                     <!-- Slider Gamer 4 -->
+                     <div class="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                        <label class="flex justify-between font-bold text-gray-700 mb-4 uppercase text-sm tracking-wider">
+                             <span><i class="fas fa-microphone-alt mr-2 text-red-500"></i>Impacto del Pitch</span>
+                            <span class="text-red-600 font-black" id="val-4">3/5</span>
+                        </label>
+                        <input type="range" class="w-full h-4 bg-gray-300 rounded-full appearance-none cursor-pointer accent-red-500" min="1" max="5" step="1" value="3" oninput="document.getElementById('val-4').innerText = this.value + '/5'">
+                         <div class="flex justify-between text-xs text-gray-500 mt-2 font-bold uppercase"><span>Aburrido</span><span>Memorable</span></div>
+                    </div>
+                </div>
+
+                <button onclick="app.playSound('success'); app.submitEvaluation()" class="mt-10 udd-gradient w-full text-white font-bold text-xl py-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition flex items-center justify-center">
+                    <i class="fas fa-paper-plane mr-3"></i> Enviar Feedback y Finalizar
+                </button>
+            </div>
+        </section>

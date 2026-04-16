@@ -1,0 +1,1634 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MisiónEmprende UDD - El Juego</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Montserrat (Textos) y Russo One (Títulos Gamer) -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <!-- CSS Personalizado -->
+    <link rel="stylesheet" href="{% static 'misionemprende/css/main2.css' %}">
+</head>
+<body class="flex flex-col">
+
+    <!-- Header Global Gamer -->
+    <header class="bg-gray-900 bg-opacity-90 backdrop-filter backdrop-blur-lg shadow-lg sticky top-0 z-40 border-b border-gray-800">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            
+            <!-- LOGOS INTEGRADOS -->
+            <div class="flex items-center space-x-4">
+                <!-- Contenedor Logos -->
+                <div class="flex items-center space-x-2">
+                    <!-- Logo del Juego (Cohete) -->
+                    <div class="w-10 h-10 udd-gradient rounded-full flex items-center justify-center text-white shadow-lg transform hover:scale-110 transition duration-300 cursor-pointer" title="Home" onclick="app.attemptGoHome()">
+                        <i class="fas fa-rocket text-lg"></i>
+                    </div>
+                    
+                    <!-- Signo + -->
+                    <span class="text-gray-400 text-xl font-bold">+</span>
+                    
+                    <!-- Logo UDD (Con fallback a URL pública si no encuentra el archivo local) -->
+                    <img src="{% static 'misionemprende/img/image.png' %}" 
+                         onerror="this.src='https://admision.udd.cl/wp-content/themes/udd-admision/assets/images/logo-udd-blanco.svg'" 
+                         alt="Logo UDD" 
+                         class="h-14 w-auto opacity-90 hover:opacity-100 transition">
+                </div>
+
+                <!-- Título -->
+                <h1 class="text-xl text-white hidden md:block tracking-wider border-l-2 border-gray-600 pl-4">Misión<span class="text-pink-500">Emprende</span></h1>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <div id="team-display" class="hidden text-sm font-semibold text-gray-300">
+                    Equipo: <span id="team-name-display" class="text-pink-500 uppercase">---</span>
+                </div>
+                <!-- Token Counter Animado -->
+                <div class="token-badge px-4 py-2 rounded-full text-lg font-bold shadow-lg flex items-center transform transition hover:scale-110">
+                    <i class="fas fa-coins mr-2 animate-pulse"></i> <span id="token-count">0</span>
+                </div>
+                <div id="global-timer" class="hidden bg-red-600 text-white px-4 py-2 rounded-lg font-mono text-xl font-bold border-2 border-red-400 shadow-lg animate-pulse">
+                    00:00
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-6xl relative">
+        
+        <!-- Notificaciones Toast Gamer -->
+        <div id="toast" class="fixed top-24 right-4 bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-x-full transition-transform duration-500 z-50 flex items-center border-2 border-white">
+            <i class="fas fa-check-circle text-2xl mr-3"></i>
+            <span id="toast-message" class="font-bold text-lg">Mensaje</span>
+        </div>
+
+        <!-- Overlay de Cuenta Regresiva Dramática -->
+        <div id="dramatic-countdown" class="hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-[100] flex flex-col items-center justify-center">
+            <h2 class="text-white gamer-font text-3xl mb-4 animate-bounce">¡Prepárense!</h2>
+            <div id="countdown-number" class="text-white gamer-font text-[15rem] leading-none animate-pulse text-shadow-lg">3</div>
+        </div>
+
+        <!-- Overlay de Transición por Fin de Fase (Nuevo) -->
+        <div id="phase-transition-overlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-[100] flex flex-col items-center justify-center p-4 text-center">
+            <h2 class="text-white gamer-font text-5xl mb-6 text-yellow-400 animate-bounce">¡TIEMPO AGOTADO!</h2>
+            <p class="text-gray-300 text-xl mb-8">Las palabras correctas eran: <span id="correct-words-display" class="font-bold text-pink-500"></span>.</p>
+            <p class="text-white text-3xl font-bold mb-4">Continuando la Misión en...</p>
+            <div id="transition-countdown-number" class="text-white gamer-font text-[8rem] leading-none animate-pulse text-shadow-lg">10</div>
+        </div>
+
+        <!-- 1. PANTALLA DE BIENVENIDA (REDDISEÑADA) -->
+        <!-- ... (Contenido de bienvenida omitido para brevedad, no hay cambios aquí) ... -->
+        <section id="view-welcome" class="active fade-in text-center py-6">
+            
+            <!-- Hero Title -->
+            <div class="mb-10 animate-bounce-slow">
+                <h1 class="text-5xl md:text-7xl font-bold text-white mb-2 gamer-font drop-shadow-lg">Misión<span class="text-pink-500">Emprende</span></h1>
+                <p class="text-gray-300 text-xl tracking-widest uppercase">Entrenamiento de Habilidades Emprendedoras</p>
+            </div>
+
+            <!-- Visual Flow (Diagrama Simplificado) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
+                <!-- Paso 1 -->
+                <div class="bg-gray-800/50 backdrop-blur-sm border-2 border-pink-500/30 p-6 rounded-2xl transform hover:scale-105 transition duration-300">
+                    <div class="w-20 h-20 bg-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(212,15,125,0.5)]">
+                        <i class="fas fa-users text-4xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2 gamer-font">1. Forma tu Squad</h3>
+                    <p class="text-gray-400 text-sm">Elige roles, conéctate con tu equipo y prepárate para la acción.</p>
+                </div>
+
+                <!-- Paso 2 -->
+                <div class="bg-gray-800/50 backdrop-blur-sm border-2 border-blue-500/30 p-6 rounded-2xl transform hover:scale-105 transition duration-300 relative">
+                    <!-- Flecha conectora (Solo desktop) -->
+                    <i class="fas fa-chevron-right absolute -left-5 top-1/2 transform -translate-y-1/2 text-2xl text-gray-600 hidden md:block"></i>
+                    
+                    <div class="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(59,130,246,0.5)]">
+                        <i class="fas fa-lightbulb text-4xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2 gamer-font">2. Supera Misiones</h3>
+                    <p class="text-gray-400 text-sm">Empatía, Creatividad y Pitch. Resuelve retos reales contrarreloj.</p>
+                </div>
+
+                <!-- Paso 3 -->
+                <div class="bg-gray-800/50 backdrop-blur-sm border-2 border-yellow-500/30 p-6 rounded-2xl transform hover:scale-105 transition duration-300 relative">
+                    <!-- Flecha conectora (Solo desktop) -->
+                    <i class="fas fa-chevron-right absolute -left-5 top-1/2 transform -translate-y-1/2 text-2xl text-gray-600 hidden md:block"></i>
+
+                    <div class="w-20 h-20 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(234,179,8,0.5)]">
+                        <i class="fas fa-coins text-4xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2 gamer-font">3. Gana Tokens</h3>
+                    <p class="text-gray-400 text-sm">Acumula recompensas por desempeño y sube en el ranking UDD.</p>
+                </div>
+            </div>
+
+            <!-- Botón de Inicio Principal (Alumnos) -->
+            <button onclick="app.playSound('click'); app.showView('view-login')" class="udd-gradient text-white font-bold text-3xl py-6 px-16 rounded-full shadow-[0_0_30px_rgba(212,15,125,0.6)] hover:shadow-[0_0_50px_rgba(212,15,125,0.8)] transform transition hover:scale-105 active:scale-95 border-4 border-white/10 group mb-12">
+                <span class="flex items-center gap-4 gamer-font">
+                    <i class="fas fa-play-circle"></i> INICIAR JUEGO
+                </span>
+            </button>
+
+            <!-- Sección de Staff / Administración -->
+            <div class="max-w-4xl mx-auto border-t border-gray-700 pt-8">
+                <p class="text-gray-500 text-sm uppercase tracking-widest mb-4 font-bold">Acceso Staff & Control</p>
+                <div class="flex justify-center gap-4">
+                    <button onclick="app.showView('view-admin')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-6 py-3 rounded-lg border border-gray-600 transition flex items-center gap-2">
+                        <i class="fas fa-chart-line text-blue-400"></i> Dashboard Admin
+                    </button>
+                    <button onclick="app.showView('view-professor')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-6 py-3 rounded-lg border border-gray-600 transition flex items-center gap-2">
+                        <i class="fas fa-chalkboard-teacher text-yellow-400"></i> Perfil Profesor
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANTALLA ADMINISTRADOR (NUEVA) -->
+        <!-- ... (Contenido de administrador omitido para brevedad, no hay cambios aquí) ... -->
+        <section id="view-admin" class="fade-in">
+            <div class="bg-white min-h-[80vh] rounded-2xl shadow-2xl overflow-hidden">
+                <!-- Admin Header -->
+                <div class="bg-gray-900 p-6 flex justify-between items-center text-white border-b-4 border-blue-500">
+                    <div>
+                        <h2 class="text-2xl font-bold gamer-font">Panel de Administración</h2>
+                        <p class="text-gray-400 text-sm">Resumen Estadístico Post-Juego</p>
+                    </div>
+                    <button onclick="app.showView('view-welcome')" class="text-sm bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded transition">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Salir
+                    </button>
+                </div>
+
+                <div class="p-8 bg-gray-50">
+                    <!-- KPI Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="stat-card border-l-4 border-blue-500">
+                            <p class="text-gray-500 text-xs font-bold uppercase">Equipos Activos</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">12</p>
+                        </div>
+                        <div class="stat-card border-l-4 border-green-500">
+                            <p class="text-gray-500 text-xs font-bold uppercase">Promedio Tokens</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">450</p>
+                        </div>
+                        <div class="stat-card border-l-4 border-purple-500">
+                            <p class="text-gray-500 text-xs font-bold uppercase">Tiempo Promedio</p>
+                            <p class="text-3xl font-bold text-gray-800 mt-1">32m</p>
+                        </div>
+                        <div class="stat-card border-l-4 border-pink-500">
+                            <p class="text-gray-500 text-xs font-bold uppercase">Habilidad Top</p>
+                            <p class="text-xl font-bold text-pink-600 mt-1">Empatía</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                        <!-- Chart Simulado: Desarrollo de Habilidades -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                            <h3 class="font-bold text-gray-700 mb-6 flex items-center"><i class="fas fa-brain mr-2 text-blue-500"></i> Desarrollo de Habilidades (Global)</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-sm font-bold text-gray-600 mb-1"><span>Trabajo en Equipo</span> <span>85%</span></div>
+                                    <div class="bar-container"><div class="bar-fill bg-blue-500" style="width: 85%"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm font-bold text-gray-600 mb-1"><span>Innovación</span> <span>72%</span></div>
+                                    <div class="bar-container"><div class="bar-fill bg-purple-500" style="width: 72%"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm font-bold text-gray-600 mb-1"><span>Empatía</span> <span>90%</span></div>
+                                    <div class="bar-container"><div class="bar-fill bg-pink-500" style="width: 90%"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm font-bold text-gray-600 mb-1"><span>Comunicación (Pitch)</span> <span>65%</span></div>
+                                    <div class="bar-container"><div class="bar-fill bg-yellow-500" style="width: 65%"></div></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de Posiciones -->
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <h3 class="font-bold text-gray-700 mb-4 flex items-center"><i class="fas fa-trophy mr-2 text-yellow-500"></i> Ranking Final</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left text-gray-500">
+                                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-4 py-3">#</th>
+                                            <th scope="col" class="px-4 py-3">Equipo</th>
+                                            <th scope="col" class="px-4 py-3">Desafío</th>
+                                            <th scope="col" class="px-4 py-3 text-right">Tokens</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="bg-yellow-50 border-b">
+                                            <td class="px-4 py-3 font-bold text-yellow-600">1</td>
+                                            <td class="px-4 py-3 font-medium text-gray-900">Alpha Squad</td>
+                                            <td class="px-4 py-3">Salud</td>
+                                            <td class="px-4 py-3 text-right font-bold">520</td>
+                                        </tr>
+                                        <tr class="bg-white border-b hover:bg-gray-50">
+                                            <td class="px-4 py-3 font-bold text-gray-600">2</td>
+                                            <td class="px-4 py-3 font-medium text-gray-900">Los Innovadores</td>
+                                            <td class="px-4 py-3">Educación</td>
+                                            <td class="px-4 py-3 text-right font-bold">480</td>
+                                        </tr>
+                                        <tr class="bg-white border-b hover:bg-gray-50">
+                                            <td class="px-4 py-3 font-bold text-gray-600">3</td>
+                                            <td class="px-4 py-3 font-medium text-gray-900">Eco-Warriors</td>
+                                            <td class="px-4 py-3">Sustentabilidad</td>
+                                            <td class="px-4 py-3 text-right font-bold">410</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="mt-4 text-blue-600 hover:text-blue-800 text-xs font-bold float-right">Ver reporte completo <i class="fas fa-arrow-right ml-1"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+         <!-- 1.5 SELECCIÓN DE ROL -->
+         <!-- ... (Contenido de selección de rol omitido para brevedad, no hay cambios aquí) ... -->
+         <section id="view-roles" class="fade-in text-center">
+            <h2 class="text-3xl text-white gamer-font mb-2">Elige tu Rol Inicial</h2>
+            <p class="text-gray-300 mb-8">Cada gran equipo necesita especialistas. ¿Quién eres tú?</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Rol 1: El Visionario (Hustler) -->
+                <div onclick="app.selectRole('Visionario')" class="game-card p-6 cursor-pointer group hover:bg-pink-50">
+                    <div class="h-32 w-32 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition">
+                        <i class="fas fa-bullhorn text-5xl text-white"></i>
+                    </div>
+                    <h3 class="font-bold text-xl mb-2 gamer-font">El Visionario</h3>
+                    <p class="text-sm text-gray-600">Vendes la idea. Lideras el pitch. Convences al mundo.</p>
+                </div>
+                <!-- Rol 2: El Constructor (Hacker) -->
+                <div onclick="app.selectRole('Constructor')" class="game-card p-6 cursor-pointer group hover:bg-blue-50">
+                    <div class="h-32 w-32 mx-auto bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition">
+                        <i class="fas fa-cogs text-5xl text-white"></i>
+                    </div>
+                    <h3 class="font-bold text-xl mb-2 gamer-font">El Constructor</h3>
+                    <p class="text-sm text-gray-600">Haces que funcione. Prototipas. Resuelves lo técnico.</p>
+                </div>
+                <!-- Rol 3: El Empático (Hipster) -->
+                <div onclick="app.selectRole('Empatico')" class="game-card p-6 cursor-pointer group hover:bg-green-50">
+                    <div class="h-32 w-32 mx-auto bg-gradient-to-br from-green-400 to-teal-500 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition">
+                        <i class="fas fa-heart text-5xl text-white"></i>
+                    </div>
+                    <h3 class="font-bold text-xl mb-2 gamer-font">El Empático</h3>
+                    <p class="text-sm text-gray-600">Entiendes al usuario. Diseñas la experiencia. Conectas emociones.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. LOGIN Y REGISTRO DE EQUIPO (MEJORA RESPONSIVE) -->
+        <section id="view-login" class="fade-in">
+            <div class="game-card p-8 sm:p-12">
+                <div class="flex justify-between items-center mb-6 border-b pb-4">
+                    <h3 class="text-2xl font-bold text-gray-800 gamer-font">Registro de equipo</h3>
+                    <div id="user-role-display" class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-bold">
+                        Tu Rol: <span id="selected-role-name">---</span>
+                    </div>
+                </div>
+                
+                <div class="mb-6 flex flex-col md:flex-row gap-10">
+                    <div class="w-full md:w-2/3">
+                        <label class="block text-gray-700 font-bold mb-2 uppercase text-sm tracking-wider">Nombre del Equipo</label>
+                        <input type="text" id="input-team-name" maxlength="30" class="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-pink-500 focus:ring-4 focus:ring-pink-200 transition text-lg font-bold text-gray-800" placeholder="Ej: Team Estrellita">
+                    </div>
+                    <div class="w-full md:w-1/3">
+                        <label class="block text-gray-700 font-bold mb-2 uppercase text-sm tracking-wider">Código de Sesión</label>
+                        <input type="text" id="input-code" maxlength="6" oninput="this.value = this.value.toUpperCase();" class="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-pink-500 focus:ring-4 focus:ring-pink-200 transition text-lg font-bold text-gray-800" placeholder="Ej: AB1234">
+                    </div>
+                </div>
+                    <div class="mb-8">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-gray-700 font-bold uppercase text-sm tracking-wider">Integrantes (Máx 8)</label>
+                        <span id="member-count" class="bg-pink-100 text-pink-800 text-xs font-bold px-2 py-1 rounded-full">0/8</span>
+                    </div>
+                    
+                    <div id="members-list" class="space-y-2 mb-4 max-h-48 overflow-y-auto p-2 bg-gray-50 rounded-xl">
+                        <!-- Lista dinámica -->
+                    </div>
+
+                    <!-- MEJORA RESPONSIVE: gap-2 en móvil, md:flex-row en tablet/desktop -->
+                    <div class="flex flex-col md:flex-row gap-2 bg-white p-2 rounded-xl shadow-inner border">
+                        <input type="text" id="input-member-name" class="flex-grow p-3 border-none focus:ring-0 text-gray-800 font-semibold" placeholder="Nombre ">
+                        <select id="input-member-career" class="p-3 border-l bg-transparent text-gray-600 text-sm font-semibold focus:ring-0 md:border-l md:w-auto w-full">
+                            <option value="">Especialidad...</option>
+                            <option value="Ingeniería">Ingeniería</option>
+                            <option value="Diseño">Diseño</option>
+                            <option value="Salud">Salud</option>
+                            <option value="Negocios">Negocios</option>
+                            <option value="Otra">Otra</option>
+                        </select>
+                        <button onclick="app.playSound('click'); app.addMember()" class="udd-gradient text-white w-full md:w-12 h-12 rounded-lg hover:bg-gray-700 flex items-center justify-center text-xl font-bold shadow transition hover:scale-105">+</button>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-100 p-4 rounded-xl mb-6 border-l-8 border-yellow-400 flex items-start">
+                    <i class="fas fa-satellite-dish text-yellow-600 text-xl mr-3 mt-1 animate-pulse"></i>
+                    <p class="text-sm text-yellow-800 font-semibold">Esperando sincronización global. La misión comenzará cuando todos los escuadrones estén listos.</p>
+                </div>
+
+                <button onclick="app.playSound('click');enviarEquipoAlBackend(); app.finishLogin()" class="udd-gradient w-full text-white font-bold text-xl py-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" id="btn-start-game">
+                    <i class="fas fa-check-circle mr-2"></i> Confirmar y Esperar
+                </button>
+            </div>
+        </section>
+
+
+
+
+        <!-- 3. Preinicio (selección) -->
+        <section id="view-stage1-intro" class="fade-in text-center pt-6">
+             <!-- ... (Contenido de intro Etapa 1 omitido para brevedad, no hay cambios aquí) ... -->
+             <span class="bg-blue-500 text-white text-xs font-bold uppercase px-3 py-1 rounded-full mb-4 inline-block shadow-lg">Etapa 1: Sincronización</span>
+            <h2 class="text-4xl font-bold text-white mb-4 gamer-font text-shadow">Protocolo de Conexión</h2>
+            <p class="text-gray-300 mt-2 mb-10 text-xl max-w-2xl mx-auto">La confianza es su mejor arma. ¿Cuál es el estado actual del equipo?</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+                <!-- Opción 1 -->
+                <button onclick="app.playSound('click'); app.triggerDramaticCountdown('known')" class="game-card p-8 hover:border-pink-500 group text-left relative overflow-hidden">
+                     <div class="absolute top-0 right-0 -mt-4 -mr-4 bg-pink-100 h-24 w-24 rounded-full opacity-50 transition group-hover:scale-150 group-hover:bg-pink-200"></div>
+                    <i class="fas fa-users text-5xl text-pink-500 mb-4 relative z-10"></i>
+                    <h3 class="font-bold text-2xl gamer-font text-gray-800 relative z-10">Ya nos conocemos</h3>
+                    <p class="text-gray-600 mt-2 relative z-10 font-semibold">Activar Desafío de Agilidad Mental.</p>
+                </button>
+                <!-- Opción 2 -->
+                <button onclick="app.playSound('click'); app.triggerDramaticCountdown('unknown')" class="game-card p-8 hover:border-blue-500 group text-left relative overflow-hidden">
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 bg-blue-100 h-24 w-24 rounded-full opacity-50 transition group-hover:scale-150 group-hover:bg-blue-200"></div>
+                    <i class="fas fa-handshake text-5xl text-blue-500 mb-4 relative z-10"></i>
+                    <h3 class="font-bold text-2xl gamer-font text-gray-800 relative z-10">No nos conocemos</h3>
+                    <p class="text-gray-600 mt-2 relative z-10 font-semibold">Activar Dinámica Rompehielos.</p>
+                </button>
+            </div>
+        </section>
+
+        <!-- 3.1 Rompehielo-->
+        <section id="icebreaker" class="w-full max-w-lg mx-auto text-center pt-6">
+        <div class="mb-8">
+            <h2 class="white-text text-3xl font-bold gamer-font mb-2">Rompehielos <i class="fas fa-snowflake text-pink-500 animate-pulse"></i></h2>
+            <p class="text-gray-200">Conoce a tu grupo antes de la misión.</p>
+        </div>
+
+        <div id="card-container" class="relative min-h-[200px] mb-8 perspective-1000">
+            
+            <div id="question-card" class="game-card bg-white p-8 border-2 border-gray-100 flex flex-col items-center justify-center h-full min-h-[240px] relative overflow-hidden group">
+                <!-- Decoración de fondo -->
+                <div class="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                <div class="absolute bottom-0 left-0 w-24 h-24 bg-purple-50 rounded-full -ml-10 -mb-10 transition-transform group-hover:scale-110"></div>
+                
+                <i class="fas fa-comments text-4xl text-pink-400 mb-4 relative z-10"></i>
+                
+                <!-- Texto de la pregunta -->
+                <h3 id="pregunta-texto" class="text-2xl font-bold text-gray-800 relative z-10 px-4 leading-relaxed">
+                    ¿Listos para comenzar?
+                </h3>
+                
+                <!-- Contador de cartas restantes -->
+                <span id="counter" class="absolute bottom-4 right-4 text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">
+                    Mazo lleno
+                </span>
+            </div>
+        </div>
+
+        <!-- Controles -->
+        <div class="controls-area h-32 flex flex-col items-center justify-center">
+            
+            <!-- Botón para sacar carta (Se oculta al final) -->
+            <button id="btn-draw" onclick="drawCard()" class="bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-pink-600 hover:scale-105 transition-all shadow-[0_0_25px_5px_rgba(236,72,153,0.9)] flex items-center gap-3">
+                <i class="fas fa-random"></i> Sacar Carta
+            </button>
+
+            <!-- TU CÓDIGO: Botón de siguiente fase (Oculto inicialmente) -->
+            <div id="next-stage-btn" class="hidden w-full fade-in">
+                <button onclick="app.playSound('click'); app.completeStage1()" class="game-card w-full p-6 border-2 border-pink-100 hover:border-pink-500 group text-left relative overflow-hidden transition-all duration-300">
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 bg-pink-100 h-24 w-24 rounded-full opacity-50 transition group-hover:scale-150 group-hover:bg-pink-200"></div>
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="bg-pink-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-lg group-hover:rotate-12 transition">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-xl gamer-font text-gray-800">Ya nos conocemos</h3>
+                            <p class="text-gray-600 text-sm font-semibold">Vamos al siguiente desafío</p>
+                        </div>
+                        <i class="fas fa-arrow-right ml-auto text-pink-300 group-hover:text-pink-600 transition-transform group-hover:translate-x-1"></i>
+                    </div>
+                </button> 
+            </div>
+
+            <!-- Mensaje de fin (Opcional, pequeño texto antes de dar clic al botón grande) -->
+            <p id="completion-msg" class="hidden text-sm text-pink-500 font-bold mt-2 animate-bounce">
+                ¡Preguntas finalizadas!
+            </p>
+        </div>
+        </section>
+
+        <!--- Minijuego -->
+        <section id="view-stage1-game" class="fade-in py-8">
+            <div class="game-card p-6 text-center max-w-2xl mx-auto border-t-8 border-pink-500">
+                <h3 id="stage1-title" class="text-3xl font-bold mb-4 gamer-font text-gray-800">Dinámica</h3>
+                <p id="stage1-desc" class="text-lg text-gray-600 mb-8 font-semibold"></p>
+
+                <!-- Mini Juego: Sopa de Letras -->
+                <div id="game-container" class="mb-8 p-6 bg-gray-800 rounded-2xl shadow-inner">
+                    <p class="mb-4 font-bold text-white uppercase tracking-wider"><i class="fas fa-search mr-2"></i> Objetivos Detectados:</p>
+                    <div class="flex justify-center space-x-4 mb-4" id="target-words-display">
+                        <span id="word-target-INNOVAR" class="bg-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold transition">INNOVAR</span>
+                        <span id="word-target-EQUIPO" class="bg-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold transition">EQUIPO</span>
+                        <span id="word-target-LIDER" class="bg-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold transition">LIDER</span>
+                    </div>
+                    <div class="word-grid" id="word-grid">
+                        <!-- Generado por JS -->
+                    </div>
+                </div>
+
+                <button id="btn-complete-stage1" onclick="app.completeStage1()" class="udd-gradient text-white font-bold text-xl py-3 px-10 rounded-full shadow-lg opacity-50 cursor-not-allowed transition" disabled>
+                    ¡Misión Cumplida!
+                </button>
+            </div>
+            
+            <div class="mt-6 bg-blue-900 bg-opacity-50 p-4 rounded-xl border-l-4 border-blue-400 max-w-2xl mx-auto backdrop-filter backdrop-blur">
+                <h4 class="font-bold text-blue-300 text-sm uppercase"><i class="fas fa-database mr-2"></i> Archivo de Inteligencia</h4>
+                <p class="text-sm text-gray-300 mt-1 font-semibold">La cohesión del escuadrón es crítica. Un equipo conectado reacciona 40% más rápido ante imprevistos.</p>
+            </div>
+        </section>
+
+        <!-- 4. ETAPA 2: TEMAS (8 MIN) -->
+        <section id="view-stage2-topics" class="fade-in text-center pt-6">
+             <span class="bg-purple-500 text-white text-xs font-bold uppercase px-3 py-1 rounded-full mb-4 inline-block shadow-lg">Etapa 2: Infiltración y Empatía</span>
+            <h2 class="text-4xl font-bold text-white mb-4 gamer-font text-shadow">Selecciona tu Objetivo</h2>
+            <p class="text-gray-300 mt-2 mb-10 text-xl">¿Qué problema del mundo real van a hackear hoy?</p>
+
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Tarjeta 1: Tecnología adultos mayores -->
+                <div onclick="app.playSound('click'); app.selectTopic('adultos_mayores')" class="game-card cursor-pointer overflow-hidden group hover:border-yellow-500">
+                    <div class="h-40 bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center transform group-hover:scale-110 transition duration-500">
+                        <i class="fas fa-mobile-alt text-6xl text-white drop-shadow-lg"></i>
+                    </div>
+                    <div class="p-6 relative">
+                         <div class="absolute top-0 right-0 mt-[-20px] mr-4 bg-white p-2 rounded-full shadow-lg">
+                            <i class="fas fa-users text-yellow-500 text-2xl"></i>
+                        </div>
+                        <h3 class="font-bold text-xl mb-2 gamer-font text-gray-800">Tecnología adultos mayores</h3>
+                        <p class="text-sm text-gray-600 font-semibold">Rompiendo la brecha digital intergeneracional.</p>
+                    </div>
+                </div>
+                <!-- Tarjeta 2: Fastfashion y desechos -->
+                 <div onclick="app.playSound('click'); app.selectTopic('fastfashion_desechos')" class="game-card cursor-pointer overflow-hidden group hover:border-red-500">
+                    <div class="h-40 bg-gradient-to-br from-red-400 to-pink-600 flex items-center justify-center transform group-hover:scale-110 transition duration-500">
+                        <i class="fas fa-dumpster text-6xl text-white drop-shadow-lg"></i>
+                    </div>
+                    <div class="p-6 relative">
+                         <div class="absolute top-0 right-0 mt-[-20px] mr-4 bg-white p-2 rounded-full shadow-lg">
+                            <i class="fas fa-trash-alt text-red-500 text-2xl"></i>
+                        </div>
+                        <h3 class="font-bold text-xl mb-2 gamer-font text-gray-800">Fastfashion y zonas de desechos</h3>
+                        <p class="text-sm text-gray-600 font-semibold">Impacto ambiental y social de la moda rápida.</p>
+                    </div>
+                </div>
+                <!-- Tarjeta 3: Sustentabilidad del agua -->
+                 <div onclick="app.playSound('click'); app.selectTopic('sustentabilidad_agua')" class="game-card cursor-pointer overflow-hidden group hover:border-blue-500">
+                    <div class="h-40 bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center transform group-hover:scale-110 transition duration-500">
+                        <i class="fas fa-water text-6xl text-white drop-shadow-lg animate-pulse-slow"></i>
+                    </div>
+                    <div class="p-6 relative">
+                        <div class="absolute top-0 right-0 mt-[-20px] mr-4 bg-white p-2 rounded-full shadow-lg">
+                            <i class="fas fa-seedling text-blue-500 text-2xl"></i>
+                        </div>
+                        <h3 class="font-bold text-xl mb-2 gamer-font text-gray-800">Sustentabilidad del agua en la agricultura</h3>
+                        <p class="text-sm text-gray-600 font-semibold">Optimización del recurso hídrico en zonas rurales.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NUEVA VISTA: SELECCIÓN DE PERSONA (CASO ESPECÍFICO) -->
+        <section id="view-stage2-persona-select" class="fade-in py-6">
+            <button onclick="app.playSound('click'); app.showView('view-stage2-topics')" class="text-gray-500 hover:text-pink-500 mb-4 text-sm font-bold flex items-center" id="btn-persona-back"><i class="fas fa-arrow-left mr-2"></i> ABORTAR Y VOLVER</button>
+            <button onclick="app.playSound('click'); app.showView('view-stage2-topics')" class="text-gray-500 hover:text-pink-500 mb-4 text-sm font-bold flex items-center"><i class="fas fa-arrow-left mr-2"></i> ABORTAR Y VOLVER</button>
+            <h2 id="persona-select-title" class="text-4xl font-bold text-white mb-4 gamer-font text-shadow text-center">Selecciona a un sujeto</h2>
+            <p class="text-gray-300 mt-2 mb-10 text-xl text-center">Elige una persona para realizar el mapa de empatía. Uan vez seleccioando, ¡No hay vuelta atrás!</p>
+
+            <div id="persona-list" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Personas generadas por JS -->
+            </div>
+        </section>
+
+        <!-- 4.5 ETAPA 2: DETALLE DEL DESAFÍO (MAPA DE EMPATÍA) -->
+        <section id="view-stage2-challenge-detail" class="fade-in py-6">
+            <div class="game-card p-6 border-t-8 border-purple-500">
+                <!-- Se quita el botón de volver atrás por requisito del usuario -->
+                
+                <div class="flex flex-col md:flex-row items-start md:items-center gap-6 mb-8 bg-purple-50 p-6 rounded-2xl border-2 border-purple-200">
+                    <div id="persona-icon-large" class="bg-gradient-to-br from-purple-400 to-pink-500 w-24 h-24 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-lg rotate-3">
+                        <i class="fas fa-user-astronaut text-5xl text-white"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm text-purple-600 font-bold uppercase tracking-wider mb-1">Sujeto de Prueba</h4>
+                        <h3 id="persona-name-map" class="text-3xl font-bold text-gray-800 gamer-font mb-2">Nombre del Sujeto</h3>
+                        <p id="persona-problem-map" class="text-lg text-gray-700 font-semibold italic">"Descripción del problema crítico que enfrenta..."</p>
+                    </div>
+                </div>
+
+                <h4 class="font-bold text-center mb-2 text-xl gamer-font text-gray-800">Mapa de Empatía Táctico</h4>
+                <p class="text-sm text-center text-gray-500 mb-6 font-semibold">Haz clic en los nodos para registrar inteligencia emocional.</p>
+
+                <!-- Mini Recuadro de Instrucciones (NUEVO) -->
+                <div class="max-w-md mx-auto bg-blue-100 p-4 rounded-xl border-l-4 border-blue-400 mb-4 text-left">
+                    <h5 class="text-blue-800 font-bold flex items-center"><i class="fas fa-map-marker-alt mr-2"></i> Instrucciones de Nodos:</h5>
+                    <p class="text-xs text-blue-700 mt-1">Completa las 8 burbujas con las principales características, miedos, deseos o acciones del Agente de Enlace.</p>
+                </div>
+
+                <!-- Bubble Map Gamer con 8 nodos -->
+                <div class="bubble-container bg-slate-100 rounded-2xl border-4 border-dashed border-gray-300 mb-8 shadow-inner overflow-hidden relative">
+                    <!-- Fondo de rejilla táctica -->
+                    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle, #aaa 1px, transparent 1px); background-size: 20px 20px;"></div>
+                    
+                    <div id="bubble-center-user" class="bubble-center gamer-font tracking-wider text-lg shadow-xl border-4 border-white">USUARIO</div>
+                    
+                    <!-- Nodos inputs con estilo (8 Nodos) -->
+                    <div class="bubble-node pos-1 hover:shadow-xl"><textarea placeholder="Característica 1"></textarea></div>
+                    <div class="bubble-node pos-2 hover:shadow-xl"><textarea placeholder="Característica 2"></textarea></div>
+                    <div class="bubble-node pos-3 hover:shadow-xl"><textarea placeholder="Característica 3"></textarea></div>
+                    <div class="bubble-node pos-4 hover:shadow-xl"><textarea placeholder="Característica 4"></textarea></div>
+                    <div class="bubble-node pos-5 hover:shadow-xl"><textarea placeholder="Característica 5"></textarea></div>
+                    <div class="bubble-node pos-6 hover:shadow-xl"><textarea placeholder="Característica 6"></textarea></div>
+                    <div class="bubble-node pos-7 hover:shadow-xl"><textarea placeholder="Característica 7 (Dolor)"></textarea></div>
+                    <div class="bubble-node pos-8 bg-green-50 border-green-200 hover:shadow-xl"><textarea placeholder="Característica 8 (Ganancia)"></textarea></div>
+                </div>
+
+                <button onclick="app.playSound('success'); app.completeStage2()" class="udd-gradient w-full text-white font-bold text-xl py-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition flex items-center justify-center">
+                    <i class="fas fa-save mr-3"></i> Guardar Inteligencia y Avanzar
+                </button>
+            </div>
+        </section>
+
+        <!-- 5. ETAPA 3: CREATIVIDAD (10 MIN) -->
+        <!-- ... (Contenido de Etapa 3 omitido para brevedad, no hay cambios aquí) ... -->
+        <section id="view-stage3" class="fade-in text-center pt-6">
+            <span class="bg-green-500 text-white text-xs font-bold uppercase px-3 py-1 rounded-full mb-4 inline-block shadow-lg">Etapa 3: Prototipado Rápido</span>
+            <h2 class="text-4xl font-bold text-white mb-4 gamer-font text-shadow">Fase de Construcción</h2>
+            
+            <div class="game-card p-8 mb-8 border-t-8 border-green-500 relative overflow-hidden">
+                 <!-- Icono de fondo gigante -->
+                <i class="fas fa-cubes text-[15rem] absolute -top-20 -left-20 text-green-100 opacity-50 z-0 rotate-12"></i>
+                
+                <div class="relative z-10">
+                    <div class="flex items-center justify-center mb-6">
+                        <div class="bg-yellow-400 p-4 rounded-full shadow-lg animate-bounce-slow">
+                             <i class="fas fa-lego text-5xl text-yellow-800"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-3xl font-bold text-center mb-4 gamer-font text-gray-800">¡A los ladrillos!</h3>
+                    <p class="text-gray-600 text-center mb-8 text-lg font-semibold">Usen el LEGO físico para construir una solución tangible. No piensen, ¡hagan!</p>
+                    
+                    <div class="bg-yellow-50 p-6 rounded-2xl border-2 border-yellow-300 mb-8 shadow-md text-left relative">
+                         <div class="absolute -top-4 -left-4 bg-yellow-400 text-yellow-900 p-2 rounded-lg font-bold shadow-sm rotate-[-10deg]">
+                            <i class="fas fa-bolt"></i> MODIFICADOR
+                        </div>
+                        <h4 class="font-bold text-yellow-800 uppercase tracking-wider mb-2 ml-4">Prompt de Desafío:</h4>
+                        <p id="creative-prompt" class="italic text-xl text-gray-800 font-bold">"¿Y si la solución tuviera que caber en un bolsillo?"</p>
+                        <button onclick="app.playSound('click'); app.newPrompt()" class="mt-4 text-sm text-pink-600 font-bold hover:text-pink-800 flex items-center"><i class="fas fa-sync-alt mr-2 spin-on-hover"></i> Generar nuevo modificador</button>
+                    </div>
+
+                    <div class="border-4 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:bg-gray-50 transition cursor-pointer group" onclick="app.playSound('click'); document.getElementById('file-upload').click()">
+                        <i class="fas fa-camera-retro text-5xl text-gray-400 mb-4 group-hover:text-pink-500 transition group-hover:scale-110"></i>
+                        <p class="text-lg font-bold text-gray-600 group-hover:text-gray-800">Subir Evidencia Fotográfica (Opcional)</p>
+                        <p class="text-sm text-gray-400">Click para capturar el prototipo</p>
+                        <input type="file" id="file-upload" class="hidden" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="app.playSound('success'); app.completeStage3()" class="udd-gradient w-full md:w-2/3 text-white font-bold text-xl py-4 rounded-full shadow-lg hover:shadow-pink-500/50 hover:scale-105 transition">
+                <i class="fas fa-rocket mr-3"></i> Prototipo Terminado
+            </button>
+        </section>
+
+        <!-- 6. ETAPA 4: COMUNICACIÓN (6 MIN) -->
+        <!-- ... (Contenido de Etapa 4 omitido para brevedad, no hay cambios aquí) ... -->
+        <section id="view-stage4" class="fade-in text-center pt-6">
+             <span class="bg-red-500 text-white text-xs font-bold uppercase px-3 py-1 rounded-full mb-4 inline-block shadow-lg">Etapa 4: El Pitch Final</span>
+            <h2 class="text-4xl font-bold text-white mb-6 gamer-font text-shadow">Vender la Misión</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                <!-- Guía Táctica con INPUTS -->
+                <div class="game-card p-8 text-left border-t-8 border-red-500 h-full overflow-y-auto max-h-[600px]">
+                    <h3 class="font-bold text-2xl mb-6 gamer-font text-gray-800"><i class="fas fa-clipboard-list mr-3 text-red-500"></i>Estructura Táctica (90s)</h3>
+                    <ul class="space-y-6 text-gray-700 font-semibold">
+                        <li class="bg-red-50 p-4 rounded-lg shadow-sm">
+                            <div class="flex items-start mb-2">
+                                <i class="fas fa-check-square text-red-500 mt-1 mr-3 text-xl"></i>
+                                <div><strong class="text-red-700">1. El Gancho:</strong><br><span class="text-sm">Captura su atención en 5 segundos. Dato impactante o historia breve.</span></div>
+                            </div>
+                            <textarea class="w-full mt-2 p-3 border-2 border-red-200 rounded-lg focus:border-red-500 focus:outline-none text-gray-800 text-sm" rows="2" placeholder="Escribe tu gancho aquí..."></textarea>
+                        </li>
+                        <li class="bg-red-50 p-4 rounded-lg shadow-sm">
+                            <div class="flex items-start mb-2">
+                                <i class="fas fa-check-square text-red-500 mt-1 mr-3 text-xl"></i>
+                                <div><strong class="text-red-700">2. El Dolor (Empatía):</strong><br><span class="text-sm">¿Quién sufre y por qué? Muestra que entiendes el problema.</span></div>
+                            </div>
+                            <textarea class="w-full mt-2 p-3 border-2 border-red-200 rounded-lg focus:border-red-500 focus:outline-none text-gray-800 text-sm" rows="2" placeholder="Describe el dolor del usuario..."></textarea>
+                        </li>
+                        <li class="bg-red-50 p-4 rounded-lg shadow-sm">
+                            <div class="flex items-start mb-2">
+                                <i class="fas fa-check-square text-red-500 mt-1 mr-3 text-xl"></i>
+                                <div><strong class="text-red-700">3. El Arma (Solución):</strong><br><span class="text-sm">¡Muestra el LEGO! Explica cómo tu prototipo resuelve el dolor.</span></div>
+                            </div>
+                            <textarea class="w-full mt-2 p-3 border-2 border-red-200 rounded-lg focus:border-red-500 focus:outline-none text-gray-800 text-sm" rows="2" placeholder="Explica tu solución..."></textarea>
+                        </li>
+                         <li class="bg-red-50 p-4 rounded-lg shadow-sm">
+                            <div class="flex items-start mb-2">
+                                <i class="fas fa-check-square text-red-500 mt-1 mr-3 text-xl"></i>
+                                <div><strong class="text-red-700">4. El Cierre (Call to Action):</strong><br><span class="text-sm">Una frase memorable que invite a unirse a la causa.</span></div>
+                            </div>
+                            <textarea class="w-full mt-2 p-3 border-2 border-red-200 rounded-lg focus:border-red-500 focus:outline-none text-gray-800 text-sm" rows="2" placeholder="Escribe tu frase de cierre..."></textarea>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Centro de Control -->
+                <div class="game-card p-8 flex flex-col justify-center items-center bg-gray-800 text-white border-4 border-gray-700 h-full relative overflow-hidden">
+                     <div class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                    <div class="text-center mb-8 relative z-10">
+                        <p class="text-gray-400 text-sm font-bold uppercase tracking-widest mb-2"><i class="fas fa-stopwatch mr-2"></i> Tiempo de Preparación</p>
+                        <!-- Timer Local de Preparación (Visual) -->
+                        <div id="prep-timer-display" class="text-6xl font-mono font-bold text-red-400 text-shadow-lg bg-black bg-opacity-50 px-6 py-2 rounded-xl border-2 border-red-900">06:00</div>
+                    </div>
+                    
+                    <button onclick="app.playSound('click'); app.startPitchMode()" class="bg-red-600 text-white font-bold text-2xl py-4 px-10 rounded-full hover:bg-red-700 w-full mb-4 shadow-lg hover:shadow-red-500/50 transform transition hover:scale-105 relative z-10 flex items-center justify-center group">
+                        <i class="fas fa-broadcast-tower mr-4 group-hover:animate-pulse"></i> INICIAR TRANSMISIÓN (90s)
+                    </button>
+                    <p class="text-sm text-gray-400 font-semibold relative z-10">Solo presionar cuando el equipo esté en posición.</p>
+                </div>
+            </div>
+
+            <!-- Modal de Pitch Gamer -->
+            <div id="pitch-overlay" class="hidden fixed inset-0 bg-gray-900 z-[100] flex flex-col items-center justify-center text-white bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+                <div class="absolute inset-0 bg-gradient-to-b from-red-900 via-transparent to-black opacity-80"></div>
+                <div class="relative z-10 text-center">
+                    <div class="animate-pulse mb-8">
+                         <i class="fas fa-circle text-red-500 mr-2 text-xl"></i> <span class="text-red-500 font-bold tracking-wider uppercase">En Vivo</span>
+                    </div>
+                    <h2 class="text-5xl font-bold mb-6 gamer-font text-shadow-lg">¡ESTÁN EN EL AIRE!</h2>
+                    <div class="bg-black bg-opacity-50 p-8 rounded-3xl border-4 border-red-600 shadow-2xl mb-10">
+                        <div id="pitch-timer" class="text-[10rem] font-mono font-bold text-white leading-none text-shadow-xl">01:30</div>
+                    </div>
+                    <button onclick="app.playSound('click'); app.endPitch()" class="bg-transparent border-4 border-white text-white font-bold text-xl px-12 py-4 rounded-full hover:bg-white hover:text-black transition uppercase tracking-wider">
+                        <i class="fas fa-stop-circle mr-3"></i> Terminar Transmisión
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. ETAPA 5: EVALUACIÓN -->
+        <!-- ... (Contenido de Etapa 5 omitido para brevedad, no hay cambios aquí) ... -->
+        <section id="view-stage5" class="fade-in py-8">
+            <div class="game-card p-8 max-w-3xl mx-auto border-t-8 border-yellow-500">
+                 <h2 class="text-3xl font-bold mb-2 gamer-font text-gray-800 text-center">Evaluación de Pares</h2>
+                 <p class="text-center text-gray-600 mb-8 font-semibold bg-yellow-100 py-2 rounded-lg">
+                    <i class="fas fa-info-circle mr-2"></i>Evalúen objetivamente al escuadrón: <strong>"Equipo Alpha"</strong> (Simulado)
+                </p>
+
+                <div class="space-y-8">
+                    <!-- Slider Gamer 1 -->
+                    <div class="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                        <label class="flex justify-between font-bold text-gray-700 mb-4 uppercase text-sm tracking-wider">
+                            <span><i class="fas fa-users mr-2 text-yellow-500"></i>Coordinación de Equipo</span>
+                            <span class="text-yellow-600 font-black" id="val-1">3/5</span>
+                        </label>
+                        <input type="range" class="w-full h-4 bg-gray-300 rounded-full appearance-none cursor-pointer accent-yellow-500" min="1" max="5" step="1" value="3" oninput="document.getElementById('val-1').innerText = this.value + '/5'">
+                        <div class="flex justify-between text-xs text-gray-500 mt-2 font-bold uppercase"><span>Novatos</span><span>Élite</span></div>
+                    </div>
+                     <!-- Slider Gamer 2 -->
+                    <div class="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                        <label class="flex justify-between font-bold text-gray-700 mb-4 uppercase text-sm tracking-wider">
+                             <span><i class="fas fa-heart mr-2 text-pink-500"></i>Nivel de Empatía</span>
+                            <span class="text-pink-600 font-black" id="val-2">3/5</span>
+                        </label>
+                        <input type="range" class="w-full h-4 bg-gray-300 rounded-full appearance-none cursor-pointer accent-pink-500" min="1" max="5" step="1" value="3" oninput="document.getElementById('val-2').innerText = this.value + '/5'">
+                         <div class="flex justify-between text-xs text-gray-500 mt-2 font-bold uppercase"><span>Superficial</span><span>Profundo</span></div>
+                    </div>
+                    <!-- Slider Gamer 3 -->
+                     <div class="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                        <label class="flex justify-between font-bold text-gray-700 mb-4 uppercase text-sm tracking-wider">
+                             <span><i class="fas fa-lightbulb mr-2 text-blue-500"></i>Creatividad e Innovación</span>
+                            <span class="text-blue-600 font-black" id="val-3">3/5</span>
+                        </label>
+                        <input type="range" class="w-full h-4 bg-gray-300 rounded-full appearance-none cursor-pointer accent-blue-500" min="1" max="5" step="1" value="3" oninput="document.getElementById('val-3').innerText = this.value + '/5'">
+                         <div class="flex justify-between text-xs text-gray-500 mt-2 font-bold uppercase"><span>Convencional</span><span>Disruptivo</span></div>
+                    </div>
+                     <!-- Slider Gamer 4 -->
+                     <div class="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                        <label class="flex justify-between font-bold text-gray-700 mb-4 uppercase text-sm tracking-wider">
+                             <span><i class="fas fa-microphone-alt mr-2 text-red-500"></i>Impacto del Pitch</span>
+                            <span class="text-red-600 font-black" id="val-4">3/5</span>
+                        </label>
+                        <input type="range" class="w-full h-4 bg-gray-300 rounded-full appearance-none cursor-pointer accent-red-500" min="1" max="5" step="1" value="3" oninput="document.getElementById('val-4').innerText = this.value + '/5'">
+                         <div class="flex justify-between text-xs text-gray-500 mt-2 font-bold uppercase"><span>Aburrido</span><span>Memorable</span></div>
+                    </div>
+                </div>
+
+                <button onclick="app.playSound('success'); app.submitEvaluation()" class="mt-10 udd-gradient w-full text-white font-bold text-xl py-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition flex items-center justify-center">
+                    <i class="fas fa-paper-plane mr-3"></i> Enviar Feedback y Finalizar
+                </button>
+            </div>
+        </section>
+
+        <!-- 8. ETAPA 6: CIERRE Y PODIO FINAL -->
+        <!-- ... (Contenido de Etapa 6 omitido para brevedad, no hay cambios aquí) ... -->
+        <section id="view-stage6" class="fade-in text-center py-10">
+             <!-- Confeti Canvas (Placeholder) -->
+            <div class="game-card p-10 rounded-3xl shadow-2xl max-w-4xl mx-auto relative overflow-hidden bg-gradient-to-b from-white to-gray-100">
+                
+                <i class="fas fa-crown text-7xl text-yellow-400 mb-4 animate-bounce shadow-sm"></i>
+                <h2 class="text-5xl font-bold text-gray-800 mb-4 gamer-font">¡Misión Cumplida!</h2>
+                <p class="text-xl text-gray-600 mb-12 font-semibold">Clasificación Final de Escuadrones</p>
+
+                <!-- PODIO FINAL ANIMADO -->
+                <div class="flex justify-center items-end h-64 mb-16 space-x-4 px-4">
+                    <!-- 2nd Place -->
+                    <div class="flex flex-col items-center slide-up" style="animation-delay: 0.2s;">
+                        <div class="text-gray-600 font-bold mb-2">Equipo Beta</div>
+                         <div class="w-24 md:w-32 h-32 bg-gradient-to-t from-gray-400 to-gray-300 rounded-t-lg shadow-lg flex flex-col justify-end p-4 border-t-4 border-gray-500 relative">
+                            <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-gray-200 rounded-full w-10 h-10 flex items-center justify-center font-bold border-2 border-gray-400">2</div>
+                            <span class="text-2xl font-bold text-gray-800">450</span>
+                            <span class="text-xs font-bold text-gray-600 uppercase"><i class="fas fa-coins"></i> Tokens</span>
+                        </div>
+                    </div>
+                     <!-- 1st Place (Winner) -->
+                    <div class="flex flex-col items-center slide-up relative z-10" style="animation-delay: 0.4s;">
+                         <i class="fas fa-trophy text-5xl text-yellow-400 absolute -top-14 animate-bounce-slow filter drop-shadow-lg"></i>
+                        <div class="text-yellow-600 font-bold mb-2 text-xl" id="result-team-name">Tu Equipo</div>
+                        <div class="w-28 md:w-40 h-48 bg-gradient-to-t from-yellow-400 to-yellow-300 rounded-t-lg shadow-2xl flex flex-col justify-end p-4 border-t-4 border-yellow-500 relative">
+                             <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-yellow-100 rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl border-4 border-yellow-400 text-yellow-700">1</div>
+                            <span class="text-4xl font-bold text-yellow-900" id="result-tokens">0</span>
+                            <span class="text-sm font-bold text-yellow-800 uppercase"><i class="fas fa-coins"></i> Tokens</span>
+                        </div>
+                    </div>
+                     <!-- 3rd Place -->
+                    <div class="flex flex-col items-center slide-up" style="animation-delay: 0.6s;">
+                        <div class="text-yellow-700 font-bold mb-2">Equipo Gamma</div>
+                         <div class="w-24 md:w-32 h-40 bg-gradient-to-t from-yellow-600 to-yellow-500 rounded-t-lg shadow-lg flex flex-col justify-end p-4 border-t-4 border-yellow-700 relative">
+                            <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-yellow-600 rounded-full w-10 h-10 flex items-center justify-center font-bold text-white border-2 border-yellow-800">3</div>
+                            <span class="text-2xl font-bold text-white">380</span>
+                            <span class="text-xs font-bold text-yellow-200 uppercase"><i class="fas fa-coins"></i> Tokens</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Perfil de Habilidades -->
+                <div class="bg-gray-800 bg-opacity-5 backdrop-filter backdrop-blur p-8 rounded-2xl mb-8 text-left border-2 border-white/50">
+                    <h3 class="font-bold text-2xl mb-4 gamer-font text-gray-800"><i class="fas fa-chart-radar mr-3 text-pink-500"></i>Tu Perfil Emprendedor Adquirido</h3>
+                    <p class="text-gray-600 mb-4 font-semibold">Selecciona las habilidades que subieron de nivel hoy:</p>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="this.classList.toggle('bg-pink-500'); this.classList.toggle('text-white'); app.playSound('click')" class="px-6 py-2 border-2 border-pink-500 text-pink-500 font-bold rounded-full hover:bg-pink-100 transition">Liderazgo y Visión</button>
+                        <button onclick="this.classList.toggle('bg-blue-500'); this.classList.toggle('text-white'); app.playSound('click')" class="px-6 py-2 border-2 border-blue-500 text-blue-500 font-bold rounded-full hover:bg-blue-100 transition">Prototipado Ágil</button>
+                        <button onclick="this.classList.toggle('bg-green-500'); this.classList.toggle('text-white'); app.playSound('click')" class="px-6 py-2 border-2 border-green-500 text-green-500 font-bold rounded-full hover:bg-green-100 transition">Resiliencia</button>
+                        <button onclick="this.classList.toggle('bg-red-500'); this.classList.toggle('text-white'); app.playSound('click')" class="px-6 py-2 border-2 border-red-500 text-red-500 font-bold rounded-full hover:bg-red-100 transition">Comunicación de Alto Impacto</button>
+                         <button onclick="this.classList.toggle('bg-purple-500'); this.classList.toggle('text-white'); app.playSound('click')" class="px-6 py-2 border-2 border-purple-500 text-purple-500 font-bold rounded-full hover:bg-purple-100 transition">Empatía Profunda</button>
+                    </div>
+                </div>
+
+                <a href="#" class="block w-full udd-gradient text-white font-bold text-xl py-4 rounded-xl shadow-lg mb-6 hover:shadow-xl transition">
+                    <i class="fab fa-instagram text-2xl mr-3"></i> Únete a la Comunidad @EmprendimientoUDD
+                </a>
+                
+                <p class="text-sm text-gray-500 font-semibold">Gracias por jugar MisiónEmprende v2.0</p>
+            </div>
+        </section>
+
+        <!-- VISTA PROFESOR (Placeholder para el botón creado) -->
+        <section id="view-professor" class="fade-in">
+            <div class="bg-white rounded-xl shadow-xl overflow-hidden min-h-[80vh]">
+                <div class="bg-gray-800 p-4 flex justify-between items-center text-white">
+                    <h2 class="font-bold text-lg"><i class="fas fa-tower-broadcast text-yellow-500 mr-2"></i>Centro de Mando - Profesor</h2>
+                    <button onclick="app.showView('view-welcome')" class="text-xs bg-red-600 hover:bg-red-700 px-3 py-1 rounded">Volver</button>
+                </div>
+                <div class="p-6 text-center">
+                    <i class="fas fa-chalkboard-teacher text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-2xl font-bold text-gray-700">Vista de Docente</h3>
+                    <p class="text-gray-500 mt-2">Aquí el profesor podrá asignar tokens manuales y controlar el avance de los equipos.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Elementos de Audio (Placeholders - Reemplazar 'src' con archivos reales en Django) -->
+    <audio id="sfx-click" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" preload="auto"></audio>
+    <audio id="sfx-success" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto"></audio>
+    <audio id="sfx-countdown" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3" preload="auto"></audio>
+    <audio id="sfx-fanfare" src="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3" preload="auto"></audio>
+
+    <!-- Script Lógica de la Aplicación -->
+    <script src="{% static 'misionemprende/js/main2.js' %}"></script>
+                members: [],
+                tokens: 0,
+                currentStage: 0,
+                timerInterval: null,
+                selectedTopic: null,
+                selectedPersona: null, // Nuevo estado para la persona elegida
+                preGameType: null, // Para saber si se conocen o no antes del countdown
+                wordSearch: {
+                    grid: [],
+                    size: 8,
+                    words: ["INNOVAR", "EQUIPO", "LIDER"],
+                    foundWords: [],
+                    wordLocations: {} // Guardar coordenadas de palabras
+                },
+                // NUEVA ESTRUCTURA DE PERSONAS (Casos de ejemplo)
+                personas: {
+                    adultos_mayores: [
+                        {
+                            name: "Osvaldo Araya (70)",
+                            icon: "fas fa-user-lock", // Icono de seguridad o dificultad
+                            color: "bg-red-500",
+                            desc: "El avance tecnológico en los últimos años ha sido incremental. Esto ha beneficiado a multiples sectores, sin embargo el conocimiento y adaptación para los adultos mayores ha sido una gran dificultad. Osvaldo es un adulto mayor de 70 años y debe pedir ayuda a sus hijos o nietos cada vez que debe hacer trámites bancarios, médicos o postular a beneficios sociales en línea. Su mayor dolor es sentirse dependiente y vulnerable ante la tecnología."
+                        },
+                        {
+                            name: "Clara Soto (65)",
+                            icon: "fas fa-graduation-cap", // Icono de aprendizaje
+                            color: "bg-blue-500",
+                            desc: "Clara es una jubilada que vive sola en una zona rural. Le gustaría aprender a usar las redes sociales y videollamadas para mantenerse conectada con sus nietos que viven en el extranjero. Su principal frustración es que los tutoriales son muy rápidos y usan un lenguaje técnico que no entiende. Se siente excluida de la vida familiar digital."
+                        },
+                        {
+                            name: "Ricardo Neira (78)",
+                            icon: "fas fa-map-marker-alt", // Icono de localización/movilidad
+                            color: "bg-green-500",
+                            desc: "Ricardo tiene problemas de movilidad y solo puede salir de casa con dificultad. Necesita acceder a servicios de delivery de medicamentos y comida. El proceso de registro y pago en las aplicaciones móviles le resulta confuso y estresante, teme equivocarse e ingresar mal sus datos bancarios, lo que lo obliga a recurrir al teléfono fijo que es lento y costoso."
+                        }
+                    ],
+                    fastfashion_desechos: [
+                        {
+                            name: "Gabriela Rojas (18)",
+                            icon: "fas fa-lungs-virus", // Icono de enfermedad/contaminación
+                            color: "bg-red-500",
+                            desc: "La moda rápida ha traido graves consecuencias al medio ambiente. Especialmente en sectores del norte de Chile en donde los vertederos y basurales están afectando el diario vivir de las personas. Gabriela es una estudiante de 18 años que vive cerca de esta zona y debe pasar a diario por lugares con desagradables olores y polvo contaminado para ir a su instituto, afectando su salud respiratoria y su estado de ánimo."
+                        },
+                        {
+                            name: "Matías Zúñiga (35)",
+                            icon: "fas fa-briefcase", // Icono de trabajo/negocio
+                            color: "bg-yellow-500",
+                            desc: "Matías es dueño de una pequeña tienda de ropa de segunda mano. Aunque su negocio es sustentable, le cuesta mucho competir con los bajos precios y la constante novedad del fast fashion. Los consumidores jóvenes priorizan el precio, lo que amenaza la supervivencia de su emprendimiento. Busca una manera de revalorizar la ropa vintage y ética."
+                        },
+                        {
+                            name: "Elena Cáceres (52)",
+                            icon: "fas fa-house-damage", // Icono de casa dañada
+                            color: "bg-blue-500",
+                            desc: "Elena es la líder de su junta vecinal en una población cercana a un basural ilegal de ropa. El viento arrastra prendas y residuos químicos hasta su patio, contaminando su jardín y dificultando la crianza de sus nietos. Su principal dolor es la impotencia ante la inacción de las autoridades para limpiar y prevenir estos desechos tóxicos."
+                        }
+                    ],
+                    sustentabilidad_agua: [
+                        {
+                            name: "Camila Díaz (50)",
+                            icon: "fas fa-seedling", // Icono de agricultura
+                            color: "bg-green-500",
+                            desc: "El agua dulce es un recurso natural fundamental para la vida. Hay zonas rurales en que el agua se ha hecho escasa. Camila es una agricultora de 50 años que cultiva paltas de exportación. Ella está complicada de perder su negocio por la cantidad de agua que debe utilizar para mantener la producción, y teme ser señalada socialmente por el alto consumo hídrico de su cultivo."
+                        },
+                        {
+                            name: "Don Pedro Soto (68)",
+                            icon: "fas fa-tractor", // Icono de maquinaria
+                            color: "bg-yellow-500",
+                            desc: "Don Pedro tiene un pequeño campo donde cultiva hortalizas para el mercado local. Él aún utiliza métodos de riego tradicionales por inundación, perdiendo grandes cantidades de agua por evaporación y escorrentía. No tiene el conocimiento ni el capital para invertir en tecnología de riego por goteo, lo que pone en riesgo su cosecha cada verano debido a la sequía."
+                        },
+                        {
+                            name: "Ana María Vidal (30)",
+                            icon: "fas fa-flask", // Icono de ciencia/investigación
+                            color: "bg-blue-500",
+                            desc: "Ana María es una joven investigadora agrónoma que trabaja en un centro de innovación. Está desarrollando un hidrogel para retener la humedad en la tierra, pero necesita agricultores que le permitan probar su solución en condiciones reales de escasez. Su desafío es ganarse la confianza de la comunidad agrícola tradicional para implementar y escalar su tecnología."
+                        }
+                    ]
+                }
+            },
+
+            // --- Sistema de Sonido (sin cambios) ---
+            playSound: function(soundId) {
+                const audio = document.getElementById('sfx-' + soundId);
+                if (audio) {
+                    audio.currentTime = 0; // Reiniciar sonido si ya estaba sonando
+                    try {
+                        audio.play().catch(e => console.log("Audio play prevented:", e));
+                    } catch (e) {
+                         console.log("Error playing audio:", e);
+                    }
+                }
+            },
+
+            // Inicialización (sin cambios)
+            init: function() {
+                // No hacemos nada aquí, se hace en startStage1
+            },
+
+            // Gestión de Vistas con Scroll Top (sin cambios)
+            showView: function(viewId) {
+                const current = document.querySelector('section.active');
+                if(current) {
+                     current.classList.remove('fade-in');
+                }
+
+                setTimeout(() => {
+                    document.querySelectorAll('section').forEach(el => el.classList.remove('active'));
+                    const nextView = document.getElementById(viewId);
+                    if(nextView) {
+                        nextView.classList.add('active', 'fade-in');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                }, 100);
+            },
+
+            // Lógica de Salida (sin cambios)
+            attemptGoHome: function() {
+                if (this.state.tokens > 0 || this.state.teamName) {
+                    const confirmExit = confirm("¿Estás seguro de que quieres salir? Se perderá el progreso de la misión.");
+                    if(confirmExit) {
+                        this.resetGame();
+                        this.showView('view-welcome');
+                    }
+                } else {
+                    this.showView('view-welcome');
+                }
+            },
+
+            // Resetear Juego (sin cambios)
+            resetGame: function() {
+                this.state.teamName = "";
+                this.state.members = [];
+                this.state.tokens = 0;
+                this.state.wordSearch.foundWords = [];
+                this.state.selectedPersona = null; // Resetear persona
+                document.getElementById('token-count').innerText = "0";
+                document.getElementById('team-name-display').innerText = "---";
+                document.getElementById('team-display').classList.add('hidden');
+                document.getElementById('btn-complete-stage1').disabled = true;
+                document.getElementById('btn-complete-stage1').classList.add('opacity-50', 'cursor-not-allowed');
+                
+                // Resetear etiquetas de palabras
+                this.state.wordSearch.words.forEach(word => {
+                    const el = document.getElementById(`word-target-${word}`);
+                    if(el) {
+                        el.classList.remove('bg-green-500', 'line-through');
+                        el.classList.add('bg-pink-600');
+                    }
+                });
+
+                clearInterval(this.state.timerInterval);
+                document.getElementById('global-timer').classList.add('hidden');
+            },
+
+            // Toast Gamer (sin cambios)
+            showToast: function(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                const msgSpan = document.getElementById('toast-message');
+                msgSpan.innerText = message;
+                
+                // Cambiar color según tipo (opcional)
+                if(type === 'error') {
+                     toast.classList.remove('from-green-400', 'to-blue-500');
+                     toast.classList.add('from-red-400', 'to-pink-500');
+                } else {
+                     toast.classList.remove('from-red-400', 'to-pink-500');
+                     toast.classList.add('from-green-400', 'to-blue-500');
+                }
+
+                toast.classList.remove('translate-x-full');
+                this.playSound('success'); // Sonido de notificación
+                setTimeout(() => toast.classList.add('translate-x-full'), 3000);
+            },
+
+            // Agregar Tokens (sin cambios)
+            addTokens: function(amount) {
+                this.state.tokens += amount;
+                const tokenEl = document.getElementById('token-count');
+                // Animación de conteo rápido
+                let current = parseInt(tokenEl.innerText);
+                const target = this.state.tokens;
+                const step = Math.ceil((target - current) / 10);
+                
+                const counter = setInterval(() => {
+                    current += step;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(counter);
+                    }
+                    tokenEl.innerText = current;
+                }, 30);
+
+                this.showToast(`+${amount} Tokens obtenidos!`);
+            },
+
+            // --- Lógica del Timer Global (Modificada para llamar a handleTimeoutStage1) ---
+            startTimer: function(minutes, onComplete) {
+                clearInterval(this.state.timerInterval);
+                let seconds = minutes * 60;
+                const display = document.getElementById('global-timer');
+                display.classList.remove('hidden');
+
+                this.state.timerInterval = setInterval(() => {
+                    seconds--;
+                    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                    const s = (seconds % 60).toString().padStart(2, '0');
+                    display.innerText = `${m}:${s}`;
+
+                    // Alerta visual cuando queda poco tiempo
+                    if (seconds <= 60) display.classList.add('bg-red-700', 'animate-pulse-fast');
+
+                    if (seconds <= 0) {
+                        clearInterval(this.state.timerInterval);
+                        display.classList.add('hidden');
+                        // Llama a la nueva función de manejo de tiempo de espera
+                        if (this.state.currentStage === 1) {
+                            this.handleTimeoutStage1();
+                        } else {
+                            if(onComplete) onComplete();
+                        }
+                    }
+                }, 1000);
+            },
+
+            // --- NUEVA FUNCIÓN: Manejo de tiempo agotado para Etapa 1 ---
+            handleTimeoutStage1: function() {
+                clearInterval(this.state.timerInterval);
+                this.playSound('countdown'); // Sonido de alerta
+                
+                // Muestra el overlay de transición
+                const overlay = document.getElementById('phase-transition-overlay');
+                const wordsDisplay = document.getElementById('correct-words-display');
+                const countdownDisplay = document.getElementById('transition-countdown-number');
+                overlay.classList.remove('hidden');
+
+                // Muestra las palabras correctas
+                wordsDisplay.innerText = this.state.wordSearch.words.join(', ');
+
+                // Marca las celdas de las palabras correctas en la grilla para referencia
+                const allIndices = this.state.wordSearch.words.flatMap(word => this.state.wordSearch.wordLocations[word]);
+                document.querySelectorAll('.letter-cell').forEach(cell => {
+                    const idx = parseInt(cell.dataset.index);
+                    if(allIndices.includes(idx) && !cell.classList.contains('found')) {
+                         cell.classList.add('correct-word'); // Clase para resaltar en rojo
+                    }
+                    cell.onclick = null; // Deshabilita clics
+                });
+                
+                let count = 10;
+                countdownDisplay.innerText = count;
+
+                const transitionInterval = setInterval(() => {
+                    count--;
+                    countdownDisplay.innerText = count;
+                    this.playSound('countdown');
+
+                    if (count <= 0) {
+                        clearInterval(transitionInterval);
+                        overlay.classList.add('hidden');
+                        this.showToast("Misión 1 finalizada por tiempo.", 'error');
+                        this.addTokens(50); // Bono de consuelo
+                        this.showView('view-stage2-topics');
+                        this.startTimer(8); // Iniciar Timer para Etapa 2
+                    }
+                }, 1000);
+            },
+
+
+            // --- Funciones de Etapas ---
+
+            // Seleccionar Rol (sin cambios)
+            selectRole: function(roleName) {
+                this.state.selectedRole = roleName;
+                document.getElementById('selected-role-name').innerText = roleName;
+                this.playSound('success');
+                this.showView('view-login');
+            },
+
+            // Agregar Miembro (sin cambios)
+            addMember: function() {
+                const nameIn = document.getElementById('input-member-name');
+                const careerIn = document.getElementById('input-member-career');
+                
+                if (this.state.members.length >= 8) return this.showToast("Máximo 8 agentes.", 'error');
+                if (!nameIn.value) return;
+
+                this.state.members.push({name: nameIn.value, career: careerIn.value});
+                
+                // Actualizar UI con estilo gamer
+                const list = document.getElementById('members-list');
+                const div = document.createElement('div');
+                div.className = "flex justify-between bg-white p-3 rounded-lg shadow-sm border-l-4 border-pink-500 text-sm font-semibold items-center";
+                div.innerHTML = `<span><i class="fas fa-user-astronaut mr-2 text-gray-400"></i>${nameIn.value}</span> <span class="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">${careerIn.value}</span>`;
+                list.appendChild(div);
+                list.scrollTop = list.scrollHeight; // Auto-scroll hacia abajo
+                
+                document.getElementById('member-count').innerText = `${this.state.members.length}/8`;
+                nameIn.value = "";
+                careerIn.value = "";
+            },
+
+            // Finalizar Login (sin cambios)
+            finishLogin: function() {
+                const teamName = document.getElementById('input-team-name').value;
+                if(!teamName || this.state.members.length === 0) return this.showToast("Ingresa nombre de escuadrón y al menos 1 agente.", 'error');
+                
+                this.state.teamName = teamName;
+                document.getElementById('team-name-display').innerText = teamName;
+                document.getElementById('team-display').classList.remove('hidden');
+                
+                // Simular espera de backend
+                const btn = document.getElementById('btn-start-game');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sincronizando con el servidor...';
+                btn.disabled = true;
+                document.getElementById('input-team-name').disabled = true; // Deshabilitar inputs
+
+                setTimeout(() => {
+                    this.showView('view-stage1-intro');
+                    // NO INICIAR TIMER AQUÍ
+                }, 3000); 
+            },
+
+            // CUENTA REGRESIVA DRAMÁTICA (sin cambios)
+            triggerDramaticCountdown: function(type) {
+                this.state.preGameType = type;
+                const overlay = document.getElementById('dramatic-countdown');
+                const numberDisplay = document.getElementById('countdown-number');
+                let count = 3;
+                
+                overlay.classList.remove('hidden');
+                numberDisplay.innerText = count;
+                this.playSound('countdown');
+
+                const countdownInterval = setInterval(() => {
+                    count--;
+                    if(count > 0) {
+                         numberDisplay.innerText = count;
+                         this.playSound('countdown');
+                    } else if (count === 0) {
+                         numberDisplay.innerText = "¡YA!";
+                         this.playSound('success');
+                    } else {
+                        clearInterval(countdownInterval);
+                        overlay.classList.add('hidden');
+                        this.startStage1(this.state.preGameType); 
+                    }
+                }, 1000);
+            },
+
+            // Iniciar Etapa 1 (Con actualización de currentStage)
+            startStage1: function(type) {
+                if(type === 'known') {
+                    this.state.currentStage = 1;
+                    this.showView('view-stage1-game');
+                    const title = document.getElementById('stage1-title');
+                    const desc = document.getElementById('stage1-desc');
+                    const targetWordsDiv = document.getElementById('target-words-display');
+                    title.innerText = "Desafío de Agilidad Mental";
+                    desc.innerHTML = "Encuentren las 3 palabras ocultas: INNOVAR, EQUIPO, LIDER.";
+                    targetWordsDiv.classList.remove('hidden');
+                    this.generateWordSearch();
+                    
+                } else {
+                    this.showView('icebreaker');
+                    this.state.currentStage = 1;
+                }
+                
+                // INICIAR TIMER AQUÍ (5 MIN)
+                this.startTimer(5);
+            },
+
+            // Lógica Sopa de Letras Inteligente (sin cambios significativos)
+            generateWordSearch: function() {
+                const size = 8;
+                const grid = new Array(size * size).fill('');
+                const words = this.state.wordSearch.words;
+                this.state.wordSearch.foundWords = [];
+                this.state.wordSearch.wordLocations = {}; // Resetear ubicaciones
+
+                // Colocar palabras
+                words.forEach(word => {
+                    let placed = false;
+                    while (!placed) {
+                        const direction = Math.floor(Math.random() * 2); // 0: Horiz, 1: Vert
+                        const row = Math.floor(Math.random() * size);
+                        const col = Math.floor(Math.random() * size);
+                        
+                        // Verificar si cabe
+                        if (direction === 0 && col + word.length <= size) {
+                            // Check overlap
+                            let canPlace = true;
+                            for (let i = 0; i < word.length; i++) {
+                                if (grid[row * size + (col + i)] !== '' && grid[row * size + (col + i)] !== word[i]) {
+                                    canPlace = false; break;
+                                }
+                            }
+                            if (canPlace) {
+                                let indices = [];
+                                for (let i = 0; i < word.length; i++) {
+                                    grid[row * size + (col + i)] = word[i];
+                                    indices.push(row * size + (col + i));
+                                }
+                                this.state.wordSearch.wordLocations[word] = indices;
+                                placed = true;
+                            }
+                        } else if (direction === 1 && row + word.length <= size) {
+                            let canPlace = true;
+                            for (let i = 0; i < word.length; i++) {
+                                if (grid[(row + i) * size + col] !== '' && grid[(row + i) * size + col] !== word[i]) {
+                                    canPlace = false; break;
+                                }
+                            }
+                            if (canPlace) {
+                                let indices = [];
+                                for (let i = 0; i < word.length; i++) {
+                                    grid[(row + i) * size + col] = word[i];
+                                    indices.push((row + i) * size + col);
+                                }
+                                this.state.wordSearch.wordLocations[word] = indices;
+                                placed = true;
+                            }
+                        }
+                    }
+                });
+
+                // Rellenar vacíos
+                for (let i = 0; i < grid.length; i++) {
+                    if (grid[i] === '') grid[i] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+                }
+
+                // Renderizar Grid
+                const gridEl = document.getElementById('word-grid');
+                gridEl.innerHTML = '';
+                grid.forEach((letter, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'letter-cell';
+                    div.innerText = letter;
+                    div.dataset.index = index;
+                    div.onclick = () => this.handleCellClick(div, index);
+                    gridEl.appendChild(div);
+                });
+                
+                // Resetear estado visual de palabras objetivo
+                this.state.wordSearch.words.forEach(word => {
+                    const el = document.getElementById(`word-target-${word}`);
+                    el.classList.remove('bg-green-500', 'line-through');
+                    el.classList.add('bg-pink-600');
+                });
+                
+                // Deshabilitar botón
+                const btn = document.getElementById('btn-complete-stage1');
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            },
+
+            // Manejo de Click en celda (sin cambios)
+            handleCellClick: function(cell, index) {
+                if (cell.classList.contains('found') || cell.classList.contains('correct-word')) return; 
+                
+                cell.classList.toggle('selected');
+                
+                const allSelected = document.querySelectorAll('.letter-cell.selected');
+                const selectedIndices = Array.from(allSelected).map(el => parseInt(el.dataset.index)).sort((a,b)=>a-b);
+                
+                const words = this.state.wordSearch.words;
+                words.forEach(word => {
+                    if (this.state.wordSearch.foundWords.includes(word)) return;
+
+                    const targetIndices = this.state.wordSearch.wordLocations[word].sort((a,b)=>a-b);
+                    
+                    if (JSON.stringify(selectedIndices) === JSON.stringify(targetIndices)) {
+                        this.markWordAsFound(word, targetIndices);
+                    }
+                });
+            },
+
+            // Marcar Palabra Encontrada (sin cambios)
+            markWordAsFound: function(word, indices) {
+                this.state.wordSearch.foundWords.push(word);
+                this.playSound('success');
+                
+                indices.forEach(idx => {
+                    const cell = document.querySelector(`.letter-cell[data-index='${idx}']`);
+                    cell.classList.remove('selected');
+                    cell.classList.add('found');
+                });
+
+                const targetEl = document.getElementById(`word-target-${word}`);
+                targetEl.classList.remove('bg-pink-600');
+                targetEl.classList.add('bg-green-500', 'line-through');
+
+                if (this.state.wordSearch.foundWords.length === this.state.wordSearch.words.length) {
+                    clearInterval(this.state.timerInterval); // Detener el timer al completar
+                    document.getElementById('global-timer').classList.add('hidden');
+
+                    const btn = document.getElementById('btn-complete-stage1');
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.classList.add('animate-bounce');
+                    this.playSound('fanfare');
+                }
+            },
+
+            // Completar Etapa 1
+            completeStage1: function() {
+                clearInterval(this.state.timerInterval); // Asegurar que el timer se detenga
+                document.getElementById('global-timer').classList.add('hidden');
+                this.addTokens(100);
+                this.showView('view-stage2-topics');
+                this.state.currentStage = 2;
+                this.startTimer(8); // 8 min para etapa 2
+            },
+            
+            // --- NUEVAS FUNCIONES PARA ETAPA 2 ---
+
+            // Seleccionar Tema (Muestra la lista de personas)
+            selectTopic: function(topic) {
+                this.state.selectedTopic = topic;
+                this.showPersonaSelection(topic);
+            },
+
+            showPersonaSelection: function(topicKey) {
+                const personas = this.state.personas[topicKey];
+                const personaListEl = document.getElementById('persona-list');
+                personaListEl.innerHTML = '';
+                
+                // Generar cards de personas
+                personas.forEach((persona, index) => {
+                    const html = `
+                        <div onclick="app.playSound('click'); app.selectPersona('${topicKey}', ${index})" 
+                            class="game-card p-6 cursor-pointer group hover:bg-gray-100 persona-card border-t-8 border-${persona.color.split('-')[1]} relative">
+                            
+                            <div class="flex items-center gap-4 mb-3">
+                                <div class="w-12 h-12 ${persona.color} rounded-full flex-shrink-0 flex items-center justify-center text-white shadow-lg">
+                                    <i class="${persona.icon} text-xl"></i>
+                                </div>
+                                <h3 class="font-bold text-xl gamer-font text-gray-800">${persona.name}</h3>
+                            </div>
+                            
+                            <p class="text-sm text-gray-600 font-semibold italic">Haz hover para leer el caso completo</p>
+                            
+                            <!-- Descripción expandible -->
+                            <div class="persona-description mt-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <p class="text-xs text-gray-700 font-medium">${persona.desc}</p>
+                            </div>
+                        </div>
+                    `;
+                    personaListEl.innerHTML += html;
+                });
+                
+                // Deshabilitar botón de volver (no hay vuelta atrás desde aquí por regla de negocio)
+                document.getElementById('btn-persona-back').classList.add('hidden');
+
+                this.showView('view-stage2-persona-select');
+            },
+
+            // Seleccionar Persona y avanzar al Mapa de Empatía
+            selectPersona: function(topicKey, index) {
+                clearInterval(this.state.timerInterval); // Detener timer de la fase de selección
+                this.state.selectedPersona = this.state.personas[topicKey][index];
+                
+                // Cargar datos en el mapa de empatía
+                document.getElementById('persona-name-map').innerText = this.state.selectedPersona.name;
+                document.getElementById('persona-problem-map').innerText = this.state.selectedPersona.desc.split('. ').slice(0, 1).join('. ') + '...'; // Primera frase
+                document.getElementById('bubble-center-user').innerText = this.state.selectedPersona.name.split(' ')[0].toUpperCase();
+
+                // Actualizar icono grande del mapa
+                const iconContainer = document.getElementById('persona-icon-large');
+                iconContainer.innerHTML = `<i class="${this.state.selectedPersona.icon} text-5xl text-white"></i>`;
+                iconContainer.className = `bg-gradient-to-br from-purple-400 to-pink-500 w-24 h-24 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-lg rotate-3`; // Resetear y dejar color por defecto o ajustarlo.
+
+                this.showView('view-stage2-challenge-detail');
+                this.startTimer(8); // Reiniciar/iniciar timer de 8 min para completar el mapa
+            },
+
+            // Completar Etapa 2
+            completeStage2: function() {
+                clearInterval(this.state.timerInterval); // Detener el timer
+                document.getElementById('global-timer').classList.add('hidden');
+                this.addTokens(150);
+                this.showView('view-stage3');
+                this.state.currentStage = 3;
+                this.startTimer(10); // 10 min para etapa 3
+            },
+
+            // New Prompt (sin cambios)
+            newPrompt: function() {
+                // Animación del icono de recarga
+                const icon = document.querySelector('.spin-on-hover');
+                icon.classList.add('fa-spin');
+                setTimeout(() => icon.classList.remove('fa-spin'), 1000);
+
+                const prompts = [
+                    "¿Y si la solución costara $0?",
+                    "¿Y si fuera 100% digital (sin hardware)?",
+                    "¿Y si tuviera que ser usada en total oscuridad?",
+                    "¿Y si tuviera que pesar menos de 100 gramos?",
+                    "¿Y si la solución fuera para niños de 5 años?"
+                ];
+                document.getElementById('creative-prompt').innerText = `"${prompts[Math.floor(Math.random() * prompts.length)]}"`;
+            },
+
+            // Completar Etapa 3 (sin cambios)
+            completeStage3: function() {
+                clearInterval(this.state.timerInterval); // Detener el timer
+                document.getElementById('global-timer').classList.add('hidden');
+                this.addTokens(200);
+                this.showView('view-stage4');
+                this.state.currentStage = 4;
+                // INICIAR TIMER PROPIO DE FASE 4 (6 MIN)
+                this.startTimer(6);
+                
+                // Timer visual local adicional
+                let prepTime = 6 * 60;
+                const prepDisplay = document.getElementById('prep-timer-display');
+                if(this.prepInterval) clearInterval(this.prepInterval); 
+
+                this.prepInterval = setInterval(() => {
+                    prepTime--;
+                    const m = Math.floor(prepTime / 60).toString().padStart(2, '0');
+                    const s = (prepTime % 60).toString().padStart(2, '0');
+                    prepDisplay.innerText = `${m}:${s}`;
+                    if(prepTime <= 0) clearInterval(this.prepInterval);
+                }, 1000);
+            },
+
+            // Iniciar Pitch (sin cambios)
+            startPitchMode: function() {
+                document.getElementById('pitch-overlay').classList.remove('hidden');
+                let pitchTime = 90; // 90 segundos
+                const pDisplay = document.getElementById('pitch-timer');
+                pDisplay.innerText = "01:30"; // Reset visual
+                pDisplay.classList.remove('text-red-500', 'animate-pulse'); // Reset estilos
+
+                if(this.currentPitchInterval) clearInterval(this.currentPitchInterval);
+                
+                this.currentPitchInterval = setInterval(() => {
+                    pitchTime--;
+                    const m = Math.floor(pitchTime / 60).toString().padStart(2, '0');
+                    const s = (pitchTime % 60).toString().padStart(2, '0');
+                    pDisplay.innerText = `${m}:${s}`;
+
+                    // Tensión final
+                    if(pitchTime <= 10) {
+                        pDisplay.classList.add('text-red-500', 'animate-pulse');
+                        if(pitchTime > 0) this.playSound('countdown'); // Tic-tac final
+                    }
+                    
+                    if(pitchTime <= 0) {
+                        clearInterval(this.currentPitchInterval);
+                        this.playSound('success'); // Sonido de fin de tiempo (o alarma)
+                        this.endPitch();
+                    }
+                }, 1000);
+            },
+
+            // Terminar Pitch (sin cambios)
+            endPitch: function() {
+                if(this.currentPitchInterval) clearInterval(this.currentPitchInterval);
+                document.getElementById('pitch-overlay').classList.add('hidden');
+                this.showView('view-stage5');
+            },
+
+            // Enviar Evaluación (sin cambios)
+            submitEvaluation: function() {
+                this.addTokens(50); // Tokens por evaluar
+                
+                // Calcular total final (añadiendo un bono por terminar)
+                const total = this.state.tokens + 100; 
+                document.getElementById('result-tokens').innerText = total;
+                document.getElementById('result-team-name').innerText = this.state.teamName || "Tu Equipo";
+                
+                this.showView('view-stage6');
+                this.playSound('fanfare'); // Música de victoria al final
+            }
+        };
+
+        // Iniciar app
+        window.onload = function() {
+            // Pequeño hack para que el navegador permita reproducir audio después de la primera interacción del usuario
+            document.body.addEventListener('click', function() {
+                // Solo la primera vez
+                if(!this.audioEnabled) {
+                     const silentAudio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+                     silentAudio.play().catch(()=>{});
+                     this.audioEnabled = true;
+                }
+            }, { once: true });
+
+            app.init();
+        };
+
+                // --- LÓGICA DEL JUEGO ---
+
+        // 1. Array original de preguntas
+        const preguntasBase = [
+           "¿Qué habilidad nueva quieres aprender este año?",
+           "¿Qué aplicación de tu celular no podrías borrar nunca?",
+           "¿Cuál fue tu primer trabajo y qué aprendiste?",
+           "Si pudieras teletransportarte ahora mismo, ¿a dónde irías?",
+           "¿Qué canción has escuchado en bucle este mes?"
+        ];
+
+        // 2. Copia del array para ir descartando (evita repetir)
+        let mazoActual = [...preguntasBase];
+
+        // Referencias al DOM
+        const preguntaTexto = document.getElementById("pregunta-texto");
+        const cardContainer = document.getElementById("question-card");
+        const btnDraw = document.getElementById("btn-draw");
+        const nextStageBtn = document.getElementById("next-stage-btn");
+        const counterSpan = document.getElementById("counter");
+        const completionMsg = document.getElementById("completion-msg");
+
+        // Inicializar contador
+        counterSpan.textContent = `${mazoActual.length} cartas restantes`;
+
+        function drawCard() {
+            // Reproducir sonido (si tu app lo tiene)
+            // app.playSound('card-flip'); 
+
+            if (mazoActual.length > 0) {
+                // Seleccionar índice aleatorio
+                const randomIndex = Math.floor(Math.random() * mazoActual.length);
+                
+                // Obtener pregunta y eliminarla del mazo (splice devuelve un array, tomamos el elemento [0])
+                const preguntaSeleccionada = mazoActual.splice(randomIndex, 1)[0];
+
+                // Animación: Quitamos y ponemos la clase para reiniciar la animación
+                cardContainer.classList.remove("pop-in");
+                void cardContainer.offsetWidth; // Truco para reiniciar el reflujo del DOM
+                cardContainer.classList.add("pop-in");
+
+                // Actualizar texto
+                preguntaTexto.textContent = preguntaSeleccionada;
+                
+                // Actualizar contador
+                counterSpan.textContent = mazoActual.length === 0 
+                    ? "¡Última carta!" 
+                    : `${mazoActual.length} cartas restantes`;
+
+                // Cambiar color del borde levemente para indicar acción
+                cardContainer.classList.add("border-pink-200");
+                setTimeout(() => cardContainer.classList.remove("border-pink-200"), 300);
+
+            } 
+            
+            // Verificación: Si el mazo quedó vacío DESPUÉS de sacar esta carta
+            if (mazoActual.length === 0) {
+                // Cambiar el botón de "Sacar Carta" para indicar que es la última o terminar
+                btnDraw.innerHTML = '<i class="fas fa-check"></i> Terminar';
+                btnDraw.onclick = finalizarJuego; // Cambiamos la función del botón
+                btnDraw.classList.remove("bg-gray-900", "hover:bg-pink-600");
+                btnDraw.classList.add("bg-green-500", "hover:bg-green-600");
+            }
+        }
+
+        function finalizarJuego() {
+            // 1. Ocultar el botón de juego
+            btnDraw.style.display = 'none';
+            
+            // 2. Mostrar el botón de "Siguiente Fase" (El código que tenías)
+            nextStageBtn.classList.remove("hidden");
+            completionMsg.classList.remove("hidden");
+            
+            // 3. Feedback visual en la carta final
+            counterSpan.textContent = "Completado";
+            counterSpan.classList.add("bg-green-100", "text-green-600");
+        }
+
+        async function enviarEquipoAlBackend() {
+            const nombreEquipo = document.getElementById("input-team-name").value;
+            const codigo = document.getElementById("input-code").value;
+
+            // recolectar integrantes desde tu lista dinámica
+            const miembrosHTML = document.querySelectorAll("#members-list .member-item");
+
+            let integrantes = [];
+            miembrosHTML.forEach(m => {
+                integrantes.push({
+                    nombre: m.querySelector(".member-name").innerText,
+                    carrera: m.querySelector(".member-career").innerText
+                });
+            });
+
+            const payload = {
+                nombre_equipo: nombreEquipo,
+                codigo: codigo,
+                carrera_principal: integrantes.length > 0 ? integrantes[0].carrera : "Sin definir",
+                integrantes: integrantes
+            };
+
+            const response = await fetch("/api/registrar-equipo/", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+
+            const resultado = await response.json();
+            console.log("Resultado del servidor:", resultado);
+
+</body>
+</html>

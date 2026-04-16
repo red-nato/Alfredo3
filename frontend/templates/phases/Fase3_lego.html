@@ -1,0 +1,47 @@
+{%load static%}
+        <!-- ... (Contenido de Etapa 3 omitido para brevedad, no hay cambios aquí) ... -->
+        <section id="view-stage3" class="fade-in text-center pt-6">
+            <span class="bg-green-500 text-white text-xs font-bold uppercase px-3 py-1 rounded-full mb-4 inline-block shadow-lg">Etapa 3: Prototipado Rápido</span>
+            <h2 class="text-4xl font-bold text-white mb-4 gamer-font text-shadow">Fase de Construcción</h2>
+            
+            <div class="game-card p-8 mb-8 border-t-8 border-green-500 relative overflow-hidden">
+                 <!-- Icono de fondo gigante -->
+                <i class="fas fa-cubes text-[15rem] absolute -top-20 -left-20 text-green-100 opacity-50 z-0 rotate-12"></i>
+                
+                <div class="relative z-10">
+                    <div class="flex items-center justify-center mb-6">
+                        <div class="bg-yellow-400 p-4 rounded-full shadow-lg animate-bounce-slow">
+                             <i class="fas fa-lego text-5xl text-yellow-800"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-3xl font-bold text-center mb-4 gamer-font text-gray-800">¡A los ladrillos!</h3>
+                    <p class="text-gray-600 text-center mb-8 text-lg font-semibold">Usen el LEGO físico para construir una solución tangible. No piensen, ¡hagan!</p>
+
+                    <div class="w-full bg-red-100 p-4 rounded-xl border-l-4 border-red-400 mb-6 text-left relative">
+                        <h5 class="text-red-800 font-bold flex items-left"><i class="fas fa-map-marker-alt mr-2"></i> Recuerden su protagonista:</h5>
+                        <h3 id='stage3-persona-name'class="text-3xl font-bold text-gray-900 gamer-font mb-2">Nombre del Sujeto</h3>
+                        <p id='stage3-problem-summary' class="text-s text-red-900 mt-2">"Descripción del problema crítico que enfrenta..."</p>
+                    </div>
+
+                    <div class="bg-yellow-50 p-6 rounded-2xl border-2 border-yellow-300 mb-8 shadow-md text-left relative">
+                         <div class="absolute -top-4 -left-4 bg-yellow-400 text-yellow-900 p-2 rounded-lg font-bold shadow-sm rotate-[-10deg]">
+                            <i class="fas fa-bolt"></i> Ayuda
+                        </div>
+                        <h4 class="font-bold text-yellow-800 uppercase tracking-wider mb-2 ml-4">Ideas para empezar:</h4>
+                        <p id="creative-prompt" class="italic text-xl text-gray-800 font-bold">"¿Y si la solución tuviera que caber en un bolsillo?"</p>
+                        <button onclick="app.playSound('click'); app.newPrompt()" class="mt-4 text-sm text-pink-600 font-bold hover:text-pink-800 flex items-center"><i class="fas fa-sync-alt mr-2 spin-on-hover"></i> Generar nuevo modificador</button>
+                    </div>
+
+                    <div class="border-4 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:bg-gray-50 transition cursor-pointer group" onclick="app.playSound('click'); document.getElementById('file-upload').click()">
+                        <i class="fas fa-camera-retro text-5xl text-gray-400 mb-4 group-hover:text-pink-500 transition group-hover:scale-110"></i>
+                        <p class="text-lg font-bold text-gray-600 group-hover:text-gray-800">Subir Evidencia Fotográfica (Opcional)</p>
+                        <p class="text-sm text-gray-400">Click para capturar el prototipo</p>
+                        <input type="file" id="file-upload" class="hidden" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="app.playSound('success'); app.completeStage3()" class="udd-gradient w-full md:w-2/3 text-white font-bold text-xl py-4 rounded-full shadow-lg hover:shadow-pink-500/50 hover:scale-105 transition">
+                <i class="fas fa-rocket mr-3"></i> Prototipo Terminado
+            </button>
+        </section>

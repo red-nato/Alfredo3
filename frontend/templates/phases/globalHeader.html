@@ -1,0 +1,40 @@
+{% load static %}
+    <header class="bg-gray-900 bg-opacity-90 backdrop-filter backdrop-blur-lg shadow-lg sticky top-0 z-40 border-b border-gray-800">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            
+            <!-- LOGOS INTEGRADOS -->
+            <div class="flex items-center space-x-2">
+                <!-- Contenedor Logos -->
+                <div class="flex items-center space-x-3">
+                        <img src="{% static 'misionemprende/img/ShlamS.png' %}" 
+                         alt="Logo ShlamS" 
+                         class="h-11 w-auto opacity-90 hover:opacity-100 transition"
+                         onclick="app.attemptGoHome()">
+                    
+                    <!-- Signo + -->
+                    <span class="text-gray-400 text-xl font-bold">+</span>
+                    
+                    <!-- Logo UDD (Con fallback a URL pública si no encuentra el archivo local) -->
+                    <img src="{% static 'misionemprende/img/image.png' %}" 
+                         onerror="this.src='https://admision.udd.cl/wp-content/themes/udd-admision/assets/images/logo-udd-blanco.svg'" 
+                         alt="Logo UDD" 
+                         class="h-14 w-auto opacity-90 hover:opacity-100 transition">
+                </div>
+
+                <!-- Título -->
+                <h1 class="text-xl text-white hidden md:block tracking-wider border-l-2 border-gray-600 pl-4">Misión<span class="text-pink-500">Emprende</span></h1>
+            </div>
+                <div id="team-display" class="hidden text-sm font-semibold text-gray-300">
+                    Equipo: <span id="team-name-display" class="text-pink-500 uppercase">---</span>
+                </div>
+            <div class="flex items-center space-x-4">
+                <!-- Token Counter Animado -->
+                <div class="token-badge px-4 py-2 rounded-full text-lg font-bold shadow-lg flex items-center transform transition hover:scale-110">
+                    <i class="fas fa-coins mr-2 animate-pulse"></i> <span id="token-count">0</span>
+                </div>
+                <div id="global-timer" class="hidden bg-red-600 text-white px-4 py-2 rounded-lg font-mono text-xl font-bold border-2 border-red-400 shadow-lg animate-pulse">
+                    00:00
+                </div>
+            </div>
+        </div>
+    </header>

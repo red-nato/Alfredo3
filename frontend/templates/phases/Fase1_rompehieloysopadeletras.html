@@ -1,0 +1,147 @@
+{%load static%}
+        <!-- 3. Preinicio (selección) -->
+        <section id="view-stage1-intro" class="fade-in text-center pt-6">
+             <!-- ... (Contenido de intro Etapa 1 omitido para brevedad, no hay cambios aquí) ... -->
+             <span class="bg-blue-500 text-white text-xs font-bold uppercase px-3 py-1 rounded-full mb-4 inline-block shadow-lg">Trabajo en equipo</span>
+            <h2 class="text-4xl font-bold text-white mb-4 gamer-font text-shadow">Juego entre pares</h2>
+            <p class="text-gray-300 mt-2 mb-10 text-xl max-w-2xl mx-auto">¿Se conocen? Sea como fuere, ambos juegos son para que se conozcan.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-3xl mx-auto pt-8">
+                <button onclick="app.playSound('click'); app.triggerDramaticCountdown('known')" class="group relative flex flex-col p-0 text-left border-0 rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all bg-white w-full">
+                    
+                    <div class="h-32 w-full rounded-t-3xl relative overflow-hidden bg-pink-900">
+                        <img src="{% static 'misionemprende/img/Fase1/fondo_conocidos.jpg' %}" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-500">
+                    </div>
+
+                    <div class="absolute top-32 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+                        <div class="w-24 h-24 bg-white rounded-full p-1.5 shadow-md">
+                            <div class="w-full h-full bg-gradient-to-br from-pink-200 to-pink-400 rounded-full relative">
+                                <img src="{% static 'misionemprende/img/Fase1/personaje_conocidos.png' %}" class="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-32 w-auto object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-300">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-16 pb-8 px-6 text-center flex-grow bg-white rounded-b-3xl w-full">
+                        <h3>
+                            <span class="font-bold text-2xl gamer-font text-pink-300 group-hover:text-pink-600 transition-colors">Ya </span>
+                            <span class="font-bold text-2xl gamer-font text-gray-800 group-hover:text-pink-600 transition-colors">nos conocemos</span>
+                        </h3>
+                        <p class="text-gray-500 mt-2 font-semibold text-sm">Sopa de letras :p</p>
+                    </div>
+                </button>
+
+                <button onclick="app.playSound('click'); app.triggerDramaticCountdown('unknown')" class="group relative flex flex-col p-0 text-left border-0 rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all bg-white w-full">
+                    
+                    <div class="h-32 w-full rounded-t-3xl relative overflow-hidden bg-blue-900">
+                        <img src="{% static 'misionemprende/img/Fase1/fondo_desconocidos.jpg' %}" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-500">
+                    </div>
+
+                    <div class="absolute top-32 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+                        <div class="w-24 h-24 bg-white rounded-full p-1.5 shadow-md">
+                            <div class="w-full h-full bg-gradient-to-br from-blue-200 to-blue-400 rounded-full relative">
+                                <img src="{% static 'misionemprende/img/Fase1/personaje_desconocidos.png' %}" class="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-32 w-auto object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-300">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-16 pb-8 px-6 text-center flex-grow bg-white rounded-b-3xl w-full">
+                        <h3>
+                            <span class="font-bold text-2xl gamer-font text-blue-300 group-hover:text-blue-600 transition-colors">No </span>
+                            <span class="font-bold text-2xl gamer-font text-gray-800 group-hover:text-blue-600 transition-colors">nos conocemos</span>
+                        </h3>
+                        <p class="text-gray-500 mt-2 font-semibold text-sm">Juego de cartas :o</p>
+                    </div>
+                </button>
+            </div>
+        </section>
+
+        <!-- 3.1 Rompehielo-->
+        <section id="icebreaker" class="w-full max-w-lg mx-auto text-center pt-6">
+        <div class="mb-8">
+            <h2 class="white-text text-3xl font-bold gamer-font mb-2">Rompehielos <i class="fas fa-snowflake text-pink-500 animate-pulse"></i></h2>
+            <p class="text-gray-200">Conoce a tu grupo primero</p>
+        </div>
+
+        <div id="card-container" class="relative min-h-[200px] mb-8 perspective-1000">
+            
+            <div id="question-card" class="game-card bg-white p-8 border-2 border-gray-100 flex flex-col items-center justify-center h-full min-h-[240px] relative overflow-hidden group">
+                <!-- Decoración de fondo -->
+                <div class="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                <div class="absolute bottom-0 left-0 w-24 h-24 bg-purple-50 rounded-full -ml-10 -mb-10 transition-transform group-hover:scale-110"></div>
+                
+                <i class="fas fa-comments text-4xl text-pink-400 mb-4 relative z-10"></i>
+                
+                <!-- Texto de la pregunta -->
+                <h3 id="pregunta-texto" class="text-2xl font-bold text-left text-gray-800 relative z-10 px-4 leading-relaxed">
+                    En este juego deben preguntarse aquellas frases que aparezcan. 
+                    ¿Todos listos?
+                </h3>
+                
+                <!-- Contador de cartas restantes -->
+                <span id="counter" class="absolute bottom-4 right-4 text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">
+                    Mazo lleno
+                </span>
+            </div>
+        </div>
+
+        <!-- Controles -->
+        <div class="controls-area h-32 flex flex-col items-center justify-center">
+            
+            <!-- Botón para sacar carta (Se oculta al final) -->
+            <button id="btn-draw" onclick="drawCard()" class="bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-pink-600 hover:scale-105 transition-all shadow-[0_0_25px_5px_rgba(236,72,153,0.9)] flex items-center gap-3">
+                <i class="fas fa-random"></i> Sacar Carta
+            </button>
+
+            <!-- TU CÓDIGO: Botón de siguiente fase (Oculto inicialmente) -->
+            <div id="next-stage-btn" class="hidden w-full fade-in">
+                <button onclick="app.playSound('click'); app.completeStage1()" class="game-card w-full p-6 border-2 border-pink-100 hover:border-pink-500 group text-left relative overflow-hidden transition-all duration-300">
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 bg-pink-100 h-24 w-24 rounded-full opacity-50 transition group-hover:scale-150 group-hover:bg-pink-200"></div>
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="bg-pink-500 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-lg group-hover:rotate-12 transition">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-xl gamer-font text-gray-800">Ya nos conocemos</h3>
+                            <p class="text-gray-600 text-sm font-semibold">Vamos al siguiente desafío</p>
+                        </div>
+                        <i class="fas fa-arrow-right ml-auto text-pink-300 group-hover:text-pink-600 transition-transform group-hover:translate-x-1"></i>
+                    </div>
+                </button> 
+            </div>
+
+            <!-- Mensaje de fin (Opcional, pequeño texto antes de dar clic al botón grande) -->
+            <p id="completion-msg" class="hidden text-sm text-pink-500 font-bold mt-2 animate-bounce">
+                ¡Preguntas finalizadas!
+            </p>
+        </div>
+        </section>
+
+        <!--- Minijuego -->
+        <section id="view-stage1-game" class="fade-in py-8">
+            <div class="game-card p-6 text-center max-w-2xl mx-auto border-t-8 border-pink-500">
+                <h3 id="stage1-title" class="text-3xl font-bold mb-4 gamer-font text-gray-800">Dinámica</h3>
+                <p id="stage1-desc" class="text-lg text-gray-600 mb-8 font-semibold"></p>
+
+                <!-- Mini Juego: Sopa de Letras -->
+                <div id="game-container" class="mb-8 p-6 bg-gray-800 rounded-2xl shadow-inner">
+                    <p class="mb-4 font-bold text-white uppercase tracking-wider"><i class="fas fa-search mr-2"></i> Palabras Detectadas:</p>
+                    <div class="flex justify-center space-x-4 mb-4" id="target-words-display">
+                        <span id="word-target-INNOVAR" class="bg-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold transition">INNOVAR</span>
+                        <span id="word-target-EQUIPO" class="bg-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold transition">EQUIPO</span>
+                        <span id="word-target-LIDER" class="bg-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold transition">LIDER</span>
+                    </div>
+                    <div class="word-grid" id="word-grid">
+                        <!-- Generado por JS -->
+                    </div>
+                </div>
+
+                <button id="btn-complete-stage1" onclick="app.completeStage1()" class="udd-gradient text-white font-bold text-xl py-3 px-10 rounded-full shadow-lg opacity-50 cursor-not-allowed transition" disabled>
+                    ¡Misión Cumplida!
+                </button>
+            </div>
+            
+            <div class="mt-6 bg-blue-900 bg-opacity-50 p-4 rounded-xl border-l-4 border-blue-400 max-w-2xl mx-auto backdrop-filter backdrop-blur">
+                <h4 class="font-bold text-blue-300 text-sm uppercase"><i class="fas fa-database mr-2"></i> Dato Freak</h4>
+                <p class="text-sm text-gray-300 mt-1 font-semibold">La cohesión del grupo es crítica. Un equipo conectado reacciona 40% más rápido ante imprevistos.</p>
+            </div>
+        </section>

@@ -1,0 +1,76 @@
+{% load static %}
+        <section id="view-admin-login" class="hidden fade-in min-h-screen flex items-center justify-center relative overflow-hidden">
+            <div class="absolute inset-0 bg-gray-900">
+                <div class="absolute inset-0 opacity-20" style="background-image: linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px); background-size: 30px 30px;"></div>
+            </div>
+        
+            <div class="bg-gray-800/90 backdrop-blur-md p-10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-gray-700 w-full max-w-md relative z-10 text-center">
+                <div class="mb-8">
+                    <i class="fas fa-user-shield text-6xl text-pink-500 mb-4 animate-pulse"></i>
+                    <h2 class="text-3xl text-white font-bold gamer-font">Acceso Restringido</h2>
+                    <p class="text-gray-400 text-sm mt-2">Identifícate para acceder al Mainframe</p>
+                </div>
+        
+                <div class="space-y-4 text-left">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase ml-1">Usuario</label>
+                        <div class="relative">
+                            <i class="fas fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                            <input type="text" id="admin-user" class="w-full bg-gray-900 border border-gray-600 text-white pl-12 pr-4 py-3 rounded-xl focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition outline-none" placeholder="Ingresa usuario">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase ml-1">Contraseña</label>
+                        <div class="relative">
+                            <i class="fas fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                            <input type="password" id="admin-pass" class="w-full bg-gray-900 border border-gray-600 text-white pl-12 pr-4 py-3 rounded-xl focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition outline-none" placeholder="••••••••">
+                        </div>
+                    </div>
+                </div>
+        
+                <button onclick="app.adminLogin()" class="mt-8 w-full udd-gradient text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-pink-500/40 hover:scale-105 transition">
+                    <i class="fas fa-unlock mr-2"></i> INICIAR SESIÓN
+                </button>
+                
+                <button onclick="app.showView('view-welcome')" class="mt-4 text-gray-500 text-sm hover:text-white transition">
+                    <i class="fas fa-arrow-left"></i> Volver al inicio
+                </button>
+            </div>
+        </section>
+
+        <section id="view-admin-dashboard" class="hidden fade-in min-h-screen bg-gray-900 pb-10">
+            <div class="bg-gray-800 border-b border-gray-700 p-6 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-pink-600 rounded-lg flex items-center justify-center text-white shadow-lg">
+                        <i class="fas fa-database text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl text-white font-bold gamer-font">Base de Datos</h2>
+                        <p class="text-gray-400 text-xs font-mono uppercase tracking-widest">Estado del servidor: <span class="text-green-400">EN LÍNEA</span></p>
+                    </div>
+                </div>
+                <button onclick="app.showView('view-welcome')" class="bg-gray-700 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition text-sm font-bold">
+                    <i class="fas fa-power-off mr-2"></i> Cerrar Sesión
+                </button>
+            </div>
+        
+            <div class="max-w-7xl mx-auto p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-gray-800 p-6 rounded-2xl border-l-4 border-blue-500 shadow-lg">
+                        <h3 class="text-gray-400 text-xs font-bold uppercase">Equipos Registrados</h3>
+                        <p id="admin-total-teams" class="text-4xl text-white font-bold gamer-font">0</p>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-2xl border-l-4 border-purple-500 shadow-lg">
+                        <h3 class="text-gray-400 text-xs font-bold uppercase">Estudiantes Totales</h3>
+                        <p id="admin-total-agents" class="text-4xl text-white font-bold gamer-font">0</p>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-2xl border-l-4 border-green-500 shadow-lg">
+                        <h3 class="text-gray-400 text-xs font-bold uppercase">Sesión Activa</h3>
+                        <p class="text-4xl text-white font-bold gamer-font">LIVE</p>
+                    </div>
+                </div>
+        
+                <div id="admin-teams-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    </div>
+            </div>
+        </section>

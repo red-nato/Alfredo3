@@ -1,0 +1,472 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Press Start 2P',monospace; background: #1a1a2e;}
+.screen{min-height:100vh;position:relative;overflow:hidden;transition:background .4s}
+.bg-letter{position:absolute;font-family:'Press Start 2P',monospace;font-weight:900;font-size:38vw;color:rgba(0,0,0,.07);left:50%;top:50%;transform:translate(-50%,-48%);pointer-events:none;user-select:none;line-height:1;white-space:nowrap;transition:color .4s}
+.scanlines{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 3px);pointer-events:none;z-index:1}
+.pixel-border{position:absolute;inset:0;pointer-events:none;z-index:2}
+.pixel-border::before{content:'';position:absolute;top:12px;left:12px;right:12px;bottom:12px;border:3px solid rgba(255,255,255,.25)}
+.pixel-border::after{content:'';position:absolute;top:18px;left:18px;right:18px;bottom:18px;border:1px solid rgba(255,255,255,.12)}
+
+.inner{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;padding:24px 16px 32px;min-height:100vh}
+
+.toprow{width:100%;max-width:700px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.tag{font-size:7px;color:rgba(255,255,255,.55);letter-spacing:2px}
+.close-btn{background:rgba(0,0,0,.2);border:2px solid rgba(255,255,255,.4);color:#fff;font-family:'Press Start 2P',monospace;font-size:8px;padding:4px 10px;cursor:pointer;letter-spacing:1px}
+.close-btn:hover{background:rgba(0,0,0,.4)}
+
+.title-block{text-align:center;margin-bottom:4px}
+.title-block h1{font-size:clamp(11px,2.5vw,16px);color:#fff;letter-spacing:3px;line-height:2;text-shadow:3px 3px 0 rgba(0,0,0,.2)}
+.title-block p{font-size:6px;color:rgba(255,255,255,.6);letter-spacing:2px;margin-top:2px}
+
+/* Flujo de Bloques */
+.hidden{display:none !important}
+.auth-block{width:100%;max-width:700px;margin-top:20vh;display:flex;flex-direction:column;align-items:center;animation: fadeIn .3s steps(3)}
+.roster-block{width:100%;max-width:700px;display:flex;flex-direction:column;align-items:center;animation: bootUp .5s steps(4)}
+
+@keyframes bootUp{0%{opacity:0;transform:translateY(15px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.avatar-stage{position:relative;width:100%;max-width:700px;display:flex;align-items:center;justify-content:center;margin:8px 0;height:260px}
+.arrow-btn{background:rgba(0,0,0,.18);border:3px solid rgba(255,255,255,.5);color:#fff;font-family:'Press Start 2P',monospace;font-size:18px;width:48px;height:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .1s;user-select:none;-webkit-tap-highlight-color:transparent}
+.arrow-btn:hover{background:rgba(0,0,0,.35)}
+.arrow-btn:active{transform:scale(.92)}
+
+.avatar-viewport{flex:1;overflow:hidden;position:relative;height:260px;cursor:grab}
+.avatar-viewport:active{cursor:grabbing}
+/* EL BUG ESTABA AQUÍ: justify-content cambiado a flex-start */
+.avatar-track{display:flex;align-items:center;justify-content:flex-start;height:100%;transition:transform .32s cubic-bezier(.4,0,.2,1)}
+.avatar-slot{width:100%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.avatar-num{font-size:32px;color:rgba(255,255,255,.18);letter-spacing:2px;margin-bottom:4px}
+.avatar-canvas{display:block;image-rendering:pixelated;filter:drop-shadow(6px 10px 0 rgba(0,0,0,.2))}
+
+.avatar-name{font-size:clamp(14px,3vw,20px);color:#fff;letter-spacing:4px;text-shadow:3px 3px 0 rgba(0,0,0,.25);margin-top:6px}
+.avatar-sub{font-size:7px;color:rgba(255,255,255,.6);letter-spacing:2px;margin-top:4px}
+
+.dots{display:flex;gap:8px;margin:4px 0 16px}
+.dot{width:10px;height:10px;background:rgba(255,255,255,.3);border:2px solid rgba(255,255,255,.5);transition:background .2s,transform .2s}
+.dot.active{background:#fff;transform:scale(1.2)}
+
+.form-panel{width:100%;background:rgba(0,0,0,.22);border:3px solid rgba(255,255,255,.3);padding:20px;margin-top:4px}
+.form-sep{border:none;border-top:2px dashed rgba(255,255,255,.2);margin:16px 0}
+.flabel{font-size:6px;color:rgba(255,255,255,.6);letter-spacing:2px;margin-bottom:12px;display:block;text-align:center;}
+.code-wrap{display:flex;gap:8px;justify-content:center;margin-bottom:4px}
+.code-box{width:44px;height:50px;background:rgba(255,255,255,.15);border:3px solid rgba(255,255,255,.4);color:#fff;font-family:'Press Start 2P',monospace;font-size:20px;text-align:center;outline:none;text-transform:uppercase;caret-color:#fff;transition:border-color .1s;padding:0}
+.code-box:focus{border-color:#fff;background:rgba(255,255,255,.25)}
+.add-row{display:flex;border:3px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);transition:border-color .1s;margin-top:10px}
+.add-row:focus-within{border-color:rgba(255,255,255,.7)}
+.add-in{flex:1;background:transparent;border:none;font-family:'Press Start 2P',monospace;font-size:7px;padding:10px 12px;color:#fff;outline:none;text-transform:uppercase;min-width:0}
+.add-in::placeholder{color:rgba(255,255,255,.35);font-size:6px}
+.add-sel{background:rgba(0,0,0,.25);border:none;border-left:2px solid rgba(255,255,255,.2);font-family:'Press Start 2P',monospace;font-size:6px;padding:0 8px;color:rgba(255,255,255,.7);outline:none;cursor:pointer;min-width:80px}
+.add-sel option{background:#333;color:#fff;font-size:12px}
+.add-btn{background:rgba(255,255,255,.2);border:none;border-left:2px solid rgba(255,255,255,.2);color:#fff;font-family:'Press Start 2P',monospace;font-size:16px;padding:0 16px;cursor:pointer;transition:background .1s}
+.add-btn:hover{background:rgba(0,0,0,.35)}
+.hint-txt{font-size:5px;color:rgba(255,255,255,.4);text-align:center;margin-top:6px;letter-spacing:1px}
+.pips{display:flex;gap:4px;margin:8px 0 6px}
+.pip{width:22px;height:8px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.25);transition:background .15s}
+.pip.on{background:rgba(255,255,255,.5);border-color:rgba(255,255,255,.8)}
+.pip.ok{background:#fff;border-color:#fff}
+.mlist{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+.mtag{background:rgba(0,0,0,.25);border-left:4px solid rgba(255,255,255,.5);padding:8px 12px;display:flex;justify-content:space-between;align-items:center}
+.mtag-info{display:flex;flex-direction:column;gap:3px}
+.mtag-name{font-size:6px;color:#fff;letter-spacing:1px}
+.mtag-career{font-size:5px;color:rgba(255,255,255,.5);letter-spacing:.5px}
+.mdel{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-family:'Press Start 2P',monospace;font-size:9px;padding:0 4px}
+.mdel:hover{color:#fff}
+.warn-bar{background:rgba(0,0,0,.2);border-left:4px solid rgba(255,220,0,.7);padding:10px 12px;margin-top:12px;display:flex;gap:10px;align-items:flex-start}
+.warn-ico{font-size:12px;flex-shrink:0;margin-top:1px}
+.warn-text{font-size:6px;color:rgba(255,255,255,.65);line-height:2.2;letter-spacing:.5px}
+.btn-go{width:100%;background:rgba(255,255,255,.9);border:none;font-family:'Press Start 2P',monospace;font-size:9px;padding:16px;cursor:not-allowed;letter-spacing:2px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;margin-top:14px;color:#888}
+.btn-go.active{color:#1a1a2e;cursor:pointer}
+.btn-go.active:hover{background:#fff;transform:scale(1.01)}
+</style>
+
+<div class="screen" id="screen">
+  <div class="bg-letter" id="bgletter">_</div>
+  <div class="scanlines"></div>
+  <div class="pixel-border"></div>
+  <div class="inner">
+
+    <div class="toprow">
+      <span class="tag">// SHLAM_SYS</span>
+      <button class="close-btn">[ X ]</button>
+    </div>
+
+    <div class="auth-block" id="auth-block">
+      <div class="title-block" style="margin-bottom: 24px;">
+        <h1>ENLACE DE RED</h1>
+        <p>IDENTIFICACION REQUERIDA</p>
+      </div>
+      <span class="flabel">// CODIGO DE SESION</span>
+      <div class="code-wrap" id="code-wrap"></div>
+      <div class="hint-txt" style="margin-top:12px;">INGRESA EL CODIGO DE 6 CARACTERES</div>
+    </div>
+
+    <div class="roster-block hidden" id="roster-block">
+      <div class="title-block">
+        <h1>ELIGE TU AVATAR</h1>
+        <p>USA LAS FLECHAS O DESLIZA PARA CAMBIAR</p>
+      </div>
+
+      <div class="avatar-stage">
+        <button class="arrow-btn" id="btn-prev" onclick="navigate(-1)">&#9664;</button>
+        <div class="avatar-viewport" id="viewport">
+          <div class="avatar-track" id="track"></div>
+        </div>
+        <button class="arrow-btn" id="btn-next-av" onclick="navigate(1)">&#9654;</button>
+      </div>
+
+      <div class="dots" id="dots"></div>
+
+      <div class="form-panel">
+        <span class="flabel" style="text-align:left;">// OPERATIVOS DEL EQUIPO</span>
+        <div class="pips" id="pips"></div>
+        <div class="mlist" id="mlist"></div>
+        <div class="add-row">
+          <input class="add-in" id="name-in" placeholder="NOMBRE OPERATIVO..." maxlength="26">
+          <select class="add-sel" id="career-sel">
+            <option value="">AREA...</option>
+            <option value="ING">INGENIERIA</option>
+            <option value="DIS">DISENO</option>
+            <option value="SAL">SALUD</option>
+            <option value="NEG">NEGOCIOS</option>
+            <option value="OTR">OTRA</option>
+          </select>
+          <button class="add-btn" onclick="addMember()">+</button>
+        </div>
+        <div class="hint-txt" style="margin-top:6px; text-align:left;">MIN 3 — MAX 8 OPERATIVOS</div>
+
+        <div class="warn-bar">
+          <span class="warn-ico" style="color:rgba(255,220,0,.8)">!</span>
+          <div class="warn-text">SYS.STATUS // STANDBY — La mision comienza cuando todos los escuadrones esten registrados en la red.</div>
+        </div>
+
+        <button class="btn-go" id="btn-go">&#9658; CONECTAR Y DESPLEGAR</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const AGENTS = [
+  { name:'HAWK',    letter:'H', bg:'#e8635a', dark:'#b34840', light:'#f2928c', accent:'#ffd6d3', num:'01' },
+  { name:'VIPER',   letter:'V', bg:'#3aaa7a', dark:'#256e4f', light:'#5dd49a', accent:'#b8f0d8', num:'02' },
+  { name:'GHOST',   letter:'G', bg:'#6b7fa8', dark:'#445070', light:'#96a8c8', accent:'#d8e0f0', num:'03' },
+  { name:'TITAN',   letter:'T', bg:'#e0a020', dark:'#a07010', light:'#f0c050', accent:'#fdecc0', num:'04' },
+  { name:'NOVA',    letter:'N', bg:'#9b5dc8', dark:'#6a3590', light:'#bf85e8', accent:'#ead5f8', num:'05' },
+  { name:'BLAZE',   letter:'B', bg:'#e06830', dark:'#a04010', light:'#f09060', accent:'#fdd8c0', num:'06' },
+  { name:'CIPHER',  letter:'C', bg:'#3880c8', dark:'#205090', light:'#6aaae0', accent:'#c8e0f8', num:'07' },
+  { name:'WRAITH',  letter:'W', bg:'#2aaa98', dark:'#1a6e60', light:'#50ccb8', accent:'#c0f0ea', num:'08' },
+];
+
+let cur = 0;
+let dragStartX = 0;
+let dragging = false;
+
+function makeCube(ag, size) {
+  const s = size;
+  const c = {
+    top: ag.light, mid: ag.bg, side: ag.dark,
+    spec: ag.accent, eye: '#1a1a2e', wool: ag.accent
+  };
+  const u = s/100;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width', s);
+  svg.setAttribute('height', s);
+  svg.setAttribute('viewBox',`0 0 100 100`);
+  svg.setAttribute('class','avatar-canvas');
+
+  function poly(pts, fill, stroke, opacity) {
+    const p = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    p.setAttribute('points', pts);
+    p.setAttribute('fill', fill||'none');
+    if(stroke) p.setAttribute('stroke', stroke);
+    if(stroke) p.setAttribute('stroke-width','1');
+    if(opacity) p.setAttribute('opacity', opacity);
+    return p;
+  }
+  function rect(x,y,w,h,fill,rx) {
+    const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    r.setAttribute('x',x); r.setAttribute('y',y);
+    r.setAttribute('width',w); r.setAttribute('height',h);
+    r.setAttribute('fill',fill);
+    if(rx) r.setAttribute('rx',rx);
+    return r;
+  }
+
+  const idx = AGENTS.indexOf(ag);
+  const bodyFn = [drawHawk,drawViper,drawGhost,drawTitan,drawNova,drawBlaze,drawCipher,drawWraith];
+  svg.appendChild(bodyFn[idx](c, poly, rect, ag));
+  return svg;
+}
+
+function drawHawk(c,poly,rect,ag){
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.appendChild(poly('50,8 82,24 82,56 50,72 18,56 18,24', c.mid));
+  g.appendChild(poly('50,8 82,24 50,40 18,24', c.top));
+  g.appendChild(poly('18,24 50,40 50,72 18,56', c.side));
+  g.appendChild(poly('82,24 50,40 50,72 82,56', c.mid));
+  g.appendChild(poly('50,12 78,26 50,38 22,26', c.spec, null, '0.3'));
+  g.appendChild(rect(34,32,8,8,c.eye));
+  g.appendChild(rect(58,32,8,8,c.eye));
+  g.appendChild(poly('40,44 60,44 55,52 45,52', ag.dark));
+  g.appendChild(poly('18,56 50,72 50,86 22,80', c.side));
+  g.appendChild(poly('82,56 50,72 50,86 78,80', c.mid));
+  return g;
+}
+function drawViper(c,poly,rect,ag){
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.appendChild(poly('50,12 80,26 80,60 50,74 20,60 20,26', c.mid));
+  g.appendChild(poly('50,12 80,26 50,40 20,26', c.top));
+  g.appendChild(poly('20,26 50,40 50,74 20,60', c.side));
+  g.appendChild(poly('80,26 50,40 50,74 80,60', c.mid));
+  g.appendChild(rect(36,34,7,7,c.eye)); g.appendChild(rect(57,34,7,7,c.eye));
+  g.appendChild(poly('43,46 57,46 54,56 46,56', ag.dark));
+  g.appendChild(rect(30,54,8,12,c.side)); g.appendChild(rect(62,54,8,12,c.side));
+  g.appendChild(rect(28,66,10,8,c.side)); g.appendChild(rect(62,66,10,8,c.side));
+  g.appendChild(poly('50,16 76,28 50,38 24,28', c.spec, null, '0.25'));
+  return g;
+}
+function drawGhost(c,poly,rect,ag){
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.appendChild(poly('50,6 85,22 85,58 50,74 15,58 15,22', c.mid));
+  g.appendChild(poly('50,6 85,22 50,38 15,22', c.top));
+  g.appendChild(poly('15,22 50,38 50,74 15,58', c.side));
+  g.appendChild(poly('85,22 50,38 50,74 85,58', c.mid));
+  g.appendChild(poly('50,10 81,24 50,36 19,24', c.spec, null, '0.2'));
+  g.appendChild(rect(34,28,10,12,c.eye)); g.appendChild(rect(56,28,10,12,c.eye));
+  g.appendChild(rect(38,30,4,4,'#fff',0)); g.appendChild(rect(60,30,4,4,'#fff',0));
+  g.appendChild(poly('42,46 58,46 56,54 44,54', c.side));
+  g.appendChild(poly('15,58 50,74 50,88 14,78', c.side));
+  g.appendChild(poly('85,58 50,74 50,88 86,78', c.mid));
+  return g;
+}
+function drawTitan(c,poly,rect,ag){
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.appendChild(poly('50,4 88,22 88,62 50,80 12,62 12,22', c.mid));
+  g.appendChild(poly('50,4 88,22 50,40 12,22', c.top));
+  g.appendChild(poly('12,22 50,40 50,80 12,62', c.side));
+  g.appendChild(poly('88,22 50,40 50,80 88,62', c.mid));
+  g.appendChild(poly('50,8 84,24 50,38 16,24', c.spec, null, '0.3'));
+  g.appendChild(rect(32,30,12,12,c.eye)); g.appendChild(rect(56,30,12,12,c.eye));
+  g.appendChild(rect(35,32,6,6,'#ffd700')); g.appendChild(rect(59,32,6,6,'#ffd700'));
+  g.appendChild(poly('40,48 60,48 58,58 42,58', ag.dark));
+  g.appendChild(poly('12,62 50,80 50,92 10,74', c.side));
+  g.appendChild(poly('88,62 50,80 50,92 90,74', c.mid));
+  return g;
+}
+function drawNova(c,poly,rect,ag){
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.appendChild(poly('50,10 82,26 82,60 50,76 18,60 18,26', c.mid));
+  g.appendChild(poly('50,10 82,26 50,42 18,26', c.top));
+  g.appendChild(poly('18,26 50,42 50,76 18,60', c.side));
+  g.appendChild(poly('82,26 50,42 50,76 82,60', c.mid));
+  g.appendChild(poly('50,14 78,28 50,40 22,28', c.spec, null, '0.3'));
+  g.appendChild(rect(34,32,8,8,'#fff'));
+  g.appendChild(rect(58,32,8,8,'#fff'));
+  g.appendChild(rect(36,34,4,4,c.eye)); g.appendChild(rect(60,34,4,4,c.eye));
+  g.appendChild(poly('44,46 56,46 54,54 46,54', c.side));
+  g.appendChild(poly('30,18 36,14 38,20 32,22', c.spec));
+  g.appendChild(poly('62,18 68,14 70,20 64,22', c.spec));
+  return g;
+}
+function drawBlaze(c,poly,rect,ag){
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.appendChild(poly('50,10 80,26 80,60 50,76 20,60 20,26', c.mid));
+  g.appendChild(poly('50,10 80,26 50,42 20,26', c.top));
+  g.appendChild(poly('20,26 50,42 50,76 20,60', c.side));
+  g.appendChild(poly('80,26 50,42 50,76 80,60', c.mid));
+  g.appendChild(rect(34,33,9,9,c.eye)); g.appendChild(rect(57,33,9,9,c.eye));
+  g.appendChild(rect(36,35,5,5,'#ff4')); g.appendChild(rect(59,35,5,5,'#ff4'));
+  g.appendChild(poly('42,48 58,48 56,58 44,58', ag.dark));
+  g.appendChild(poly('22,18 34,12 32,24 20,28', c.spec));
+  g.appendChild(poly('66,18 78,12 80,24 68,28', c.spec));
+  g.appendChild(poly('50,14 76,28 50,40 24,28', c.spec, null, '0.2'));
+  return g;
+}
+function drawCipher(c,poly,rect,ag){
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.appendChild(poly('50,8 84,24 84,60 50,76 16,60 16,24', c.mid));
+  g.appendChild(poly('50,8 84,24 50,40 16,24', c.top));
+  g.appendChild(poly('16,24 50,40 50,76 16,60', c.side));
+  g.appendChild(poly('84,24 50,40 50,76 84,60', c.mid));
+  g.appendChild(poly('50,12 80,26 50,38 20,26', c.spec, null, '0.25'));
+  g.appendChild(rect(32,30,12,14,c.eye)); g.appendChild(rect(56,30,12,14,c.eye));
+  g.appendChild(rect(34,32,8,6,'#4af')); g.appendChild(rect(58,32,8,6,'#4af'));
+  g.appendChild(poly('43,48 57,48 55,56 45,56', ag.dark));
+  g.appendChild(rect(16,60,8,14,c.side)); g.appendChild(rect(76,60,8,14,c.side));
+  g.appendChild(rect(14,74,10,8,c.side)); g.appendChild(rect(76,74,10,8,c.side));
+  return g;
+}
+function drawWraith(c,poly,rect,ag){
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.appendChild(poly('50,8 83,24 83,58 50,74 17,58 17,24', c.mid));
+  g.appendChild(poly('50,8 83,24 50,40 17,24', c.top));
+  g.appendChild(poly('17,24 50,40 50,74 17,58', c.side));
+  g.appendChild(poly('83,24 50,40 50,74 83,58', c.mid));
+  g.appendChild(poly('50,12 79,26 50,38 21,26', c.spec, null, '0.2'));
+  g.appendChild(rect(34,30,9,10,c.eye)); g.appendChild(rect(57,30,9,10,c.eye));
+  g.appendChild(rect(36,32,5,5,'#0ff',0)); g.appendChild(rect(59,32,5,5,'#0ff',0));
+  g.appendChild(poly('41,46 59,46 57,56 43,56', ag.dark));
+  g.appendChild(poly('50,4 56,8 54,16 50,12 46,16 44,8', c.spec));
+  g.appendChild(poly('17,58 50,74 50,86 16,70', c.side));
+  g.appendChild(poly('83,58 50,74 50,86 84,70', c.mid));
+  return g;
+}
+
+function buildTrack() {
+  const track = document.getElementById('track');
+  track.innerHTML = '';
+  track.style.transform = 'translateX(0)';
+  AGENTS.forEach((ag, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'avatar-slot';
+    const numDiv = document.createElement('div');
+    numDiv.className = 'avatar-num';
+    numDiv.textContent = ag.num;
+    const cube = makeCube(ag, 180);
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'avatar-name';
+    nameDiv.textContent = ag.name;
+    const subDiv = document.createElement('div');
+    subDiv.className = 'avatar-sub';
+    subDiv.textContent = getSubtitle(ag.name);
+    slot.appendChild(numDiv);
+    slot.appendChild(cube);
+    slot.appendChild(nameDiv);
+    slot.appendChild(subDiv);
+    track.appendChild(slot);
+  });
+  buildDots();
+}
+
+function getSubtitle(n){
+  const m={HAWK:'VELOCIDAD / PRECISIÓN',VIPER:'SIGILO / VENENO',GHOST:'INVISIBILIDAD / RECON',TITAN:'FUERZA / DEFENSA',NOVA:'ENERGÍA / ESTRELLAS',BLAZE:'FUEGO / ATAQUE',CIPHER:'DATOS / HACKEO',WRAITH:'SOMBRAS / TELETRANSPORTE'};
+  return m[n]||'';
+}
+
+function buildDots() {
+  const d = document.getElementById('dots');
+  d.innerHTML = '';
+  AGENTS.forEach((_,i)=>{
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i===cur?' active':'');
+    dot.onclick = ()=>goTo(i);
+    d.appendChild(dot);
+  });
+}
+
+function applyAgent(i) {
+  const ag = AGENTS[i];
+  document.getElementById('screen').style.background = ag.bg;
+  document.getElementById('bgletter').textContent = ag.letter;
+  document.querySelectorAll('.dot').forEach((d,j)=>d.classList.toggle('active',j===i));
+  document.getElementById('track').style.transform = `translateX(-${i*100}%)`;
+}
+
+function goTo(i) {
+  cur = (i + AGENTS.length) % AGENTS.length;
+  applyAgent(cur);
+}
+function navigate(dir) {
+  goTo(cur + dir);
+}
+
+function buildCodeBoxes(){
+  const w=document.getElementById('code-wrap');
+  w.innerHTML='';
+  for(let i=0;i<6;i++){
+    const inp=document.createElement('input');
+    inp.className='code-box';
+    inp.maxLength=1;
+    inp.setAttribute('inputmode','text');
+    inp.addEventListener('input',e=>{
+      e.target.value=e.target.value.toUpperCase();
+      if(e.target.value && i<5) w.children[i+1].focus();
+      checkCodeState();
+    });
+    inp.addEventListener('keydown',e=>{
+      if(e.key==='Backspace'&&!e.target.value&&i>0) w.children[i-1].focus();
+    });
+    w.appendChild(inp);
+  }
+}
+
+function getCode(){
+  return Array.from(document.getElementById('code-wrap').children).map(c=>c.value).join('');
+}
+
+// Nueva función para evaluar si el código fue ingresado y cambiar de bloque
+function checkCodeState(){
+  if(getCode().length === 6) {
+    document.getElementById('auth-block').classList.add('hidden');
+    document.getElementById('roster-block').classList.remove('hidden');
+    // Inicializar la vista del agente para que tome los estilos correctamente
+    applyAgent(cur);
+  }
+}
+
+let members=[];
+function addMember(){
+  if(members.length>=8)return;
+  const n=document.getElementById('name-in').value.trim().toUpperCase();
+  if(!n)return;
+  const c=document.getElementById('career-sel').value;
+  members.push({n,c});
+  document.getElementById('name-in').value='';
+  document.getElementById('career-sel').value='';
+  renderMembers();
+}
+function removeMember(i){members.splice(i,1);renderMembers();}
+function renderMembers(){
+  const ml=document.getElementById('mlist');
+  ml.innerHTML=members.map((m,i)=>`
+    <div class="mtag">
+      <div class="mtag-info">
+        <span class="mtag-name">${m.n}</span>
+        ${m.c?`<span class="mtag-career">${m.c}</span>`:''}
+      </div>
+      <button class="mdel" onclick="removeMember(${i})">X</button>
+    </div>`).join('');
+  const pips=document.getElementById('pips');
+  pips.innerHTML=Array.from({length:8},(_,i)=>{
+    let cls='pip';
+    if(i<members.length) cls+=members.length>=3?' ok':' on';
+    return `<div class="${cls}"></div>`;
+  }).join('');
+  checkReady();
+}
+function checkReady(){
+  const ok=members.length>=3;
+  const btn=document.getElementById('btn-go');
+  btn.classList.toggle('active',ok);
+}
+
+const vp=document.getElementById('viewport');
+vp.addEventListener('touchstart',e=>{dragStartX=e.touches[0].clientX;dragging=true;},{passive:true});
+vp.addEventListener('touchend',e=>{
+  if(!dragging)return;
+  const dx=e.changedTouches[0].clientX-dragStartX;
+  if(Math.abs(dx)>40) navigate(dx<0?1:-1);
+  dragging=false;
+});
+vp.addEventListener('mousedown',e=>{dragStartX=e.clientX;dragging=true;});
+window.addEventListener('mouseup',e=>{
+  if(!dragging)return;
+  const dx=e.clientX-dragStartX;
+  if(Math.abs(dx)>40) navigate(dx<0?1:-1);
+  dragging=false;
+});
+document.getElementById('name-in').addEventListener('keydown',e=>{if(e.key==='Enter')addMember();});
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('roster-block').classList.contains('hidden')) return;
+  if(e.key==='ArrowLeft') navigate(-1);
+  if(e.key==='ArrowRight') navigate(1);
+});
+
+buildTrack();
+buildCodeBoxes();
+renderMembers();
+</script>

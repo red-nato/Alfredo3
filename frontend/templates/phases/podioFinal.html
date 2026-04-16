@@ -1,0 +1,62 @@
+{%load static%}
+<!-- ... (Contenido de Etapa 6 omitido para brevedad, no hay cambios aquí) ... -->
+        <section id="view-stage6" class="fade-in text-center py-10">
+             <!-- Confeti Canvas (Placeholder) -->
+            <div class="game-card p-10 rounded-3xl shadow-2xl max-w-4xl mx-auto relative overflow-hidden bg-gradient-to-b from-white to-gray-100">
+                
+                <i class="fas fa-crown text-7xl text-yellow-400 mb-4 animate-bounce shadow-sm"></i>
+                <h2 class="text-5xl font-bold text-gray-800 mb-4 gamer-font">¡Misión Cumplida!</h2>
+                <p class="text-xl text-gray-600 mb-12 font-semibold">Clasificación Final de Escuadrones</p>
+
+                <!-- PODIO FINAL ANIMADO -->
+                <div class="flex justify-center items-end h-64 mb-16 space-x-4 px-4">
+                    <!-- 2nd Place -->
+                    <div class="flex flex-col items-center slide-up" style="animation-delay: 0.2s;">
+                        <div class="text-gray-600 font-bold mb-2">Equipo Beta</div>
+                         <div class="w-24 md:w-32 h-32 bg-gradient-to-t from-gray-400 to-gray-300 rounded-t-lg shadow-lg flex flex-col justify-end p-4 border-t-4 border-gray-500 relative">
+                            <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-gray-200 rounded-full w-10 h-10 flex items-center justify-center font-bold border-2 border-gray-400">2</div>
+                            <span class="text-2xl font-bold text-gray-800">12</span>
+                            <span class="text-xs font-bold text-gray-600 uppercase"><i class="fas fa-coins"></i> Tokens</span>
+                        </div>
+                    </div>
+                     <!-- 1st Place (Winner) -->
+                    <div class="flex flex-col items-center slide-up relative z-10" style="animation-delay: 0.4s;">
+                         <i class="fas fa-trophy text-5xl text-yellow-400 absolute -top-14 animate-bounce-slow filter drop-shadow-lg"></i>
+                        <div class="text-yellow-600 font-bold mb-2 text-xl" id="result-team-name">Tu Equipo</div>
+                        <div class="w-28 md:w-40 h-48 bg-gradient-to-t from-yellow-400 to-yellow-300 rounded-t-lg shadow-2xl flex flex-col justify-end p-4 border-t-4 border-yellow-500 relative">
+                             <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-yellow-100 rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl border-4 border-yellow-400 text-yellow-700">1</div>
+                            <span class="text-4xl font-bold text-yellow-900" id="result-tokens">0</span>
+                            <span class="text-sm font-bold text-yellow-800 uppercase"><i class="fas fa-coins"></i> Tokens</span>
+                        </div>
+                    </div>
+                     <!-- 3rd Place -->
+                    <div class="flex flex-col items-center slide-up" style="animation-delay: 0.6s;">
+                        <div class="text-yellow-700 font-bold mb-2">Equipo Gamma</div>
+                         <div class="w-24 md:w-32 h-40 bg-gradient-to-t from-yellow-600 to-yellow-500 rounded-t-lg shadow-lg flex flex-col justify-end p-4 border-t-4 border-yellow-700 relative">
+                            <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-yellow-600 rounded-full w-10 h-10 flex items-center justify-center font-bold text-white border-2 border-yellow-800">3</div>
+                            <span class="text-2xl font-bold text-white">8</span>
+                            <span class="text-xs font-bold text-yellow-200 uppercase"><i class="fas fa-coins"></i> Tokens</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Perfil de Habilidades -->
+                <div class="bg-gray-800 bg-opacity-5 backdrop-filter backdrop-blur p-8 rounded-2xl mb-8 border-2 border-white/50">
+                    <h3 class="font-bold text-2xl mb-4 gamer-font text-gray-800"><i class="fas fa-chart-radar mr-3 text-pink-500"></i>Tu Perfil Emprendedor Adquirido</h3>
+                    <p class="text-gray-600 text-center font-semibold">Selecciona las habilidades que subieron de nivel hoy:</p>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button onclick="this.classList.toggle('bg-pink-500'); this.classList.toggle('text-white'); app.playSound('click')" class="px-6 py-2 border-2 border-pink-500 text-pink-500 font-bold rounded-full hover:bg-pink-100 transition">Liderazgo y Visión</button>
+                        <button onclick="this.classList.toggle('bg-blue-500'); this.classList.toggle('text-white'); app.playSound('click')" class="px-6 py-2 border-2 border-blue-500 text-blue-500 font-bold rounded-full hover:bg-blue-100 transition">Prototipado Ágil</button>
+                        <button onclick="this.classList.toggle('bg-green-500'); this.classList.toggle('text-white'); app.playSound('click')" class="px-6 py-2 border-2 border-green-500 text-green-500 font-bold rounded-full hover:bg-green-100 transition">Resiliencia</button>
+                        <button onclick="this.classList.toggle('bg-red-500'); this.classList.toggle('text-white'); app.playSound('click')" class="px-6 py-2 border-2 border-red-500 text-red-500 font-bold rounded-full hover:bg-red-100 transition">Comunicación de Alto Impacto</button>
+                         <button onclick="this.classList.toggle('bg-purple-500'); this.classList.toggle('text-white'); app.playSound('click')" class="px-6 py-2 border-2 border-purple-500 text-purple-500 font-bold rounded-full hover:bg-purple-100 transition">Empatía Profunda</button>
+                    </div>
+                </div>
+
+                <button onclick="app.playSound('click'); app.resetGame(); app.showView('view-welcome')" class="udd-gradient w-full text-white font-bold text-xl py-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" id="btn-start-game">
+                    <i class="fas fa-check-circle mr-2"></i> Volver al inicio
+                </button>
+                
+                <p class="text-sm text-gray-500 font-semibold">Gracias por jugar MisiónEmprende</p>
+            </div>
+        </section>
