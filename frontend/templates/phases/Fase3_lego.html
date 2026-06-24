@@ -1,0 +1,100 @@
+{%load static%}
+
+<!-- ══════════════════════════════════════════════════════════════
+     FASE 3 — CREATIVIDAD (LEGO)
+     ══════════════════════════════════════════════════════════════ -->
+<section id="view-stage3" class="fade-in text-center pt-6">
+
+    <!-- Indicadores de habilidades -->
+    <div class="flex flex-wrap justify-center gap-3 mb-8">
+        <span class="bg-yellow-500/50 text-yellow-200 text-xs font-bold uppercase px-4 py-1.5 rounded-full">Trabajo en equipo ✓</span>
+        <span class="bg-purple-500/50 text-purple-200 text-xs font-bold uppercase px-4 py-1.5 rounded-full">Empatía ✓</span>
+        <span class="animate-pulse bg-red-500 text-white text-xs font-bold uppercase px-4 py-1.5 rounded-full shadow-lg shadow-red-500/30">
+            <i class="fas fa-cube mr-1"></i> Creatividad
+        </span>
+        <span class="bg-gray-600/40 text-gray-500 text-xs font-bold uppercase px-4 py-1.5 rounded-full">Comunicación</span>
+        <span class="bg-gray-600/40 text-gray-500 text-xs font-bold uppercase px-4 py-1.5 rounded-full">Negociación</span>
+    </div>
+
+    <!-- Encabezado -->
+    <div class="mb-6">
+        <div class="inline-flex items-center gap-2 bg-red-500/20 border border-red-400/30 text-red-300 text-xs font-bold uppercase px-4 py-1.5 rounded-full mb-3">
+            <i class="fas fa-cube"></i> Fase 3 de 5 — Creatividad con LEGO
+        </div>
+        <h2 class="text-4xl font-bold text-white mb-3 gamer-font">¡Es hora de crear!</h2>
+        <p class="text-gray-300 text-lg max-w-xl mx-auto">Ya tienen el problema. Ahora, construyan su solución con las piezas que tienen. <strong class="text-white">Piensen, pero por sobre todo, construyan.</strong></p>
+    </div>
+
+    <div class="relative bg-[#e3000b] rounded-3xl p-8 mb-8 shadow-[0_12px_0_#990000] border-2 border-[#b30000]">
+    
+        <div class="absolute -top-20 -left-3 z-30">
+            <img src="{% static 'misionemprende/img/Helpis/HelpiLego.png' %}" 
+                class="h-72 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] cursor-pointer"
+                onclick="app.playSound('subnautica')"
+                alt="Helpi Esperando">
+        </div>
+
+        <div class="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+            <div class="absolute inset-0 opacity-30">
+                <div class="w-20 h-20 rounded-full border-b-8 border-r-8 border-[#990000] bg-[#e3000b] absolute top-6 left-10 shadow-inner"></div>
+                <div class="w-24 h-24 rounded-full border-b-8 border-r-8 border-[#990000] bg-[#e3000b] absolute top-10 right-8 shadow-inner"></div>
+                <div class="w-32 h-32 rounded-full border-b-8 border-r-8 border-[#990000] bg-[#e3000b] absolute bottom-12 -left-12 shadow-inner"></div>
+                <div class="w-16 h-16 rounded-full border-b-8 border-r-8 border-[#990000] bg-[#e3000b] absolute -bottom-4 right-20 shadow-inner"></div>
+            </div>
+        </div>
+
+        <div class="relative z-10">
+            <div class="flex items-center justify-center mb-6 drop-shadow-[0_5px_5px_rgba(0,0,0,0.4)]">
+                <img src="{% static 'misionemprende/img/Fase3/legoLogo.png' %}" class="h-20 md:h-24 w-auto block">
+            </div>
+
+            <h3 class="text-3xl md:text-4xl text-center mb-8 gamer-font text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] tracking-wide leading-tight">
+                Construyan una solución tangible para la <strong class="text-[#ffcf00]">problemática</strong> de su persona.<br/>
+            </h3>
+
+            <div class="flex flex-col md:flex-row items-start md:items-center w-full bg-white p-6 rounded-xl border-b-[10px] border-r-[10px] border-gray-300 gap-6 mb-8 text-left relative transform transition-transform duration-200 hover:-translate-y-1 hover:border-b-[14px]">
+                <div id="stage3-persona-icon" class="bg-gradient-to-br from-orange-400 to-red-500 w-24 h-24 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-lg overflow-hidden">
+                    <i class="fas fa-user-astronaut text-5xl text-white"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-black uppercase tracking-widest text-red-500 mb-1">Tu persona — recuerda su problema</p>
+                    <h3 id='stage3-persona-name' class="text-3xl font-bold text-gray-900 gamer-font mb-2">Nombre del Sujeto</h3>
+                    <p id='stage3-problem-summary' class="text-md text-gray-600 font-medium leading-relaxed italic">"Descripción del problema crítico que enfrenta..."</p>
+                </div>
+            </div>
+
+            <div class="w-full bg-[#ffcf00] p-6 rounded-xl border-b-[10px] border-r-[10px] border-[#d4ab00] mb-8 shadow-lg text-left relative transform transition-transform duration-200 hover:-translate-y-1 hover:border-b-[14px]">
+                <div class="absolute -top-5 -left-3 bg-black text-white px-3 py-1 rounded-md font-bold shadow-lg rotate-[-4deg] text-sm tracking-widest border-2 border-white z-20">
+                    <i class="fas fa-bolt text-[#ffcf00] mr-1"></i> RESTRICCIÓN CREATIVA
+                </div>
+                <h4 class="font-bold text-black/70 uppercase tracking-wider mb-2 mt-2 text-xs">Úsenla como punto de partida o ignórenla, ¡pero léanla!</h4>
+                <p id="creative-prompt" class="italic text-2xl text-black font-black drop-shadow-sm leading-tight">"¿Y si la solución tuviera que caber en un bolsillo?"</p>
+                <button onclick="app.playSound('click'); app.newPrompt()" class="mt-4 text-sm bg-black text-white px-5 py-2.5 rounded-full font-bold hover:bg-gray-800 flex items-center transition-transform hover:scale-105 shadow-md active:scale-95">
+                    <i class="fas fa-sync-alt mr-2 spin-on-hover"></i> Nueva restricción
+                </button>
+            </div>
+
+            <div class="border-4 border-dashed border-white/50 bg-black/10 rounded-xl p-8 text-center hover:bg-black/20 hover:border-white transition-all duration-300 cursor-pointer group backdrop-blur-sm" onclick="app.playSound('click'); document.getElementById('file-upload').click()">
+                <div id="prototype-upload-content">
+                    <div class="w-16 h-16 mx-auto bg-white/20 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-camera-retro text-3xl text-white drop-shadow-md"></i>
+                    </div>
+                    <p class="text-xl font-bold text-white mb-1 drop-shadow-sm">Fotografía tu Prototipo <span class="text-[#ffcf00] text-sm align-top ml-1">(Opcional)</span></p>
+                    <p class="text-sm text-white/70 font-medium">Guarda evidencia de tu creación. Helpi la verá (el profesor también).</p>
+                </div>
+                <input type="file" id="file-upload" class="hidden" accept="image/*" onchange="app.handlePrototypeUpload(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Nota narrativa -->
+    <div class="bg-red-900/20 border border-red-500/20 rounded-2xl p-4 mb-8 max-w-2xl mx-auto">
+        <p class="text-red-300 text-sm font-medium"><i class="fas fa-lightbulb text-red-400 mr-2"></i>
+        <strong>Recuerda:</strong> No tienen que resolver el problema perfecto. Solo necesitan una idea concreta y defendible. El prototipo es el puente entre la idea y el pitch.</p>
+    </div>
+
+    <button onclick="app.playSound('success'); app.completeStage3()"
+        class="udd-gradient w-full md:w-2/3 text-white font-bold text-xl py-4 rounded-full shadow-lg hover:shadow-pink-500/50 hover:scale-105 transition">
+        <i class="fas fa-arrow-right mr-3"></i> Prototipo Terminado → Preparar Pitch
+    </button>
+</section>

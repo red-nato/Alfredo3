@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de administración - Misión Emprende</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'misionemprende/css/main2.css' %}">
+    <link rel="shortcut icon" type="image/png" href="/static/misionemprende/img/favicon.ico" />
+    <style>
+        @font-face { font-family: 'EightBit'; src: url('{% static "misionemprende/fonts/8bit.ttf" %}'); }
+        .font-8bit { font-family: 'EightBit', monospace; }
+        .helpi-bubble { position: relative; background: #ffffff; border-radius: 1rem; border: 3px solid #ec4899; }
+        .helpi-bubble::after { content: ''; position: absolute; bottom: -12px; left: 20px; border-width: 12px 12px 0; border-style: solid; border-color: #ec4899 transparent transparent transparent; }
+        .helpi-bubble::before { content: ''; position: absolute; bottom: -6px; left: 23px; border-width: 8px 8px 0; border-style: solid; border-color: #ffffff transparent transparent transparent; z-index: 10; }
+        .cyber-grid { background-image: linear-gradient(rgba(236, 72, 153, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(236, 72, 153, 0.2) 1px, transparent 1px); background-size: 30px 30px; }
+        section:not(.active) {
+        display: none !important;}
+    </style>
+</head>
+
+<body class="flex flex-col min-h-screen bg-gray-900 text-gray-200 overscroll-none" data-page="admin">
+    <div id="toast" class="fixed top-6 right-4 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-x-full transition-transform duration-500 z-[200] flex items-center border-2 border-white">
+        <div id="toast-icon-container" class="flex items-center"></div><span id="toast-message" class="font-bold text-lg"></span>
+    </div>
+
+    <section id="view-admin-login" class="fade-in min-h-screen flex items-center justify-center relative overflow-hidden cyber-grid">
+        <div class="bg-gray-900/90 backdrop-blur-md p-10 rounded-3xl border-4 border-pink-500 shadow-[0_0_50px_rgba(236,72,153,0.4)] w-full max-w-md relative z-10 text-center">
+            <img src="{% static 'misionemprende/img/Helpis/HelpiContento.png' %}" class="h-32 absolute -top-16 right-4 drop-shadow-xl">
+            <div class="mb-8">
+                <h2 class="text-4xl text-pink-500 font-bold font-8bit mt-4">ADMIN</h2>
+                <p class="text-gray-400 text-xs font-mono mt-2 tracking-widest">ACCESO ADMINISTRATIVO</p>
+            </div>
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="text-xs font-bold text-pink-400 uppercase font-mono">Usuario</label>
+                    <input type="text" id="admin-user" class="w-full bg-black border-2 border-gray-700 text-pink-500 px-4 py-3 rounded-xl focus:border-pink-500 outline-none font-mono transition" placeholder="admin">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-pink-400 uppercase font-mono">Contraseña</label>
+                    <input type="password" id="admin-pass" class="w-full bg-black border-2 border-gray-700 text-pink-500 px-4 py-3 rounded-xl focus:border-pink-500 outline-none font-mono transition" placeholder="••••">
+                </div>
+            </div>
+            <button onclick="app.adminLogin()" class="mt-8 w-full bg-pink-600 hover:bg-pink-500 text-white font-8bit py-4 rounded-xl shadow-[0_6px_0_#9d174d] active:shadow-[0_0_0_#9d174d] active:translate-y-2 transition-all">
+                INGRESAR
+            </button>
+            <button onclick="app.goHome()" class="mt-6 text-gray-500 text-xs font-mono hover:text-white transition uppercase">Volver al inicio</button>
+        </div>
+    </section>
+
+    <section id="view-admin-dashboard" class="hidden fade-in min-h-screen flex flex-col">
+        <header class="bg-black border-b-4 border-pink-500 p-4 flex justify-between items-center sticky top-0 z-50">
+            <div class="flex items-center gap-4">
+                <img src="{% static 'misionemprende/img/lilfinderguy.png' %}" class="h-10 drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]">
+                <div>
+                    <h2 class="text-xl text-white font-8bit tracking-widest">Panel de administración</h2>
+                    <p class="text-green-400 text-xs font-mono uppercase"><i class="fas fa-circle text-[8px] animate-pulse"></i> Sistema en línea</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="app._switchAdminTab('teams')" id="tab-btn-teams" class="tab-btn bg-gray-800 border-2 border-pink-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition hover:bg-gray-700"><i class="fas fa-chart-line mr-2"></i>Métricas</button>
+                <button onclick="app._switchAdminTab('history')" id="tab-btn-history" class="tab-btn bg-gray-800 border-2 border-transparent text-gray-400 px-4 py-2 rounded-lg font-bold text-sm transition hover:bg-gray-700"><i class="fas fa-database mr-2"></i>Historial</button>
+                <button onclick="app._switchAdminTab('config')" id="tab-btn-config" class="tab-btn bg-gray-800 border-2 border-transparent text-gray-400 px-4 py-2 rounded-lg font-bold text-sm transition hover:bg-gray-700"><i class="fas fa-cogs mr-2"></i>Parámetros</button>
+                <button onclick="app.showView('view-welcome')" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold border-b-4 border-red-800 active:translate-y-1 active:border-b-0"><i class="fas fa-power-off"></i></button>
+            </div>
+        </header>
+
+        <div class="flex-grow p-6 cyber-grid overflow-y-auto">
+            
+            <div id="tab-teams" class="tab-content max-w-7xl mx-auto">
+                <div class="mb-8 bg-black/90 p-6 rounded-2xl border-l-4 border-pink-500">
+                    <h1 class="text-3xl text-white font-bold mb-2">Panel de administración</h1>
+                    <p class="text-gray-400">Monitoreo de sesiones, participantes, grupos y métricas del juego Misión Emprende.</p>
+                </div>
+
+                <div id="admin-metrics-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8"></div>
+
+                <div class="bg-black/90 border border-gray-800 rounded-2xl p-5 mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                        <div>
+                            <h2 class="text-xl text-white font-bold">Grupos registrados</h2>
+                            <p class="text-gray-500 text-sm">Vista operacional de equipos y participantes existentes en la base de datos.</p>
+                        </div>
+                        <button onclick="app.adminNukeAllTeams()" class="bg-red-600 hover:bg-red-500 text-white font-bold px-5 py-3 rounded-xl transition uppercase text-sm">
+                            <i class="fas fa-trash mr-2"></i> Eliminar registros de grupos
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-gray-900 border border-gray-700 p-5 rounded-xl"><p class="text-gray-400 text-xs mb-1 uppercase">Grupos totales</p><p id="admin-total-teams" class="text-3xl text-white font-bold">0</p></div>
+                        <div class="bg-gray-900 border border-gray-700 p-5 rounded-xl"><p class="text-gray-400 text-xs mb-1 uppercase">Participantes totales</p><p id="admin-total-agents" class="text-3xl text-white font-bold">0</p></div>
+                        <div class="bg-gray-900 border border-gray-700 p-5 rounded-xl"><p class="text-gray-400 text-xs mb-1 uppercase">Estado del sistema</p><p class="text-3xl text-green-400 font-bold">OK</p></div>
+                    </div>
+                    <div id="admin-teams-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+            </div>
+
+            <div id="tab-history" class="tab-content hidden max-w-7xl mx-auto">
+                <div class="mb-6 bg-black/90 p-6 rounded-2xl border-l-4 border-blue-500">
+                    <h2 class="text-2xl text-white font-bold mb-2">Historial de sesiones</h2>
+                    <p class="text-gray-400">Sesiones agrupadas por facultad, profesor y fecha de creación.</p>
+                </div>
+                <div class="bg-black/90 border border-gray-800 rounded-2xl p-5 mb-6">
+                    <h3 class="text-white font-bold mb-4">Filtros</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <select id="filter-faculty" onchange="app.renderAdminHistory()" class="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-gray-300"><option value="">Todas las facultades</option></select>
+                        <select id="filter-professor" onchange="app.renderAdminHistory()" class="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-gray-300"><option value="">Todos los profesores</option></select>
+                        <select id="filter-modality" onchange="app.renderAdminHistory()" class="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-gray-300"><option value="">Todas las modalidades</option></select>
+                        <select id="filter-status" onchange="app.renderAdminHistory()" class="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-gray-300"><option value="">Todos los estados</option></select>
+                        <input id="filter-date" type="date" onchange="app.renderAdminHistory()" class="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-gray-300">
+                    </div>
+                </div>
+                <div id="admin-history-container" class="space-y-5"></div>
+            </div>
+
+            <div id="tab-config" class="tab-content hidden max-w-5xl mx-auto">
+                <div class="flex justify-between items-center mb-6 bg-black p-4 rounded-xl border-l-4 border-pink-500">
+                    <p class="text-gray-300 font-mono text-sm"><i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i> Editar parámetros del juego. Los cambios aplican a las nuevas fases iniciadas.</p>
+                    <button onclick="app.resetPhaseConfigToDefaults()" class="bg-gray-800 text-white font-bold py-2 px-4 border border-gray-600 rounded hover:bg-gray-700 transition"><i class="fas fa-undo mr-2"></i>Restaurar valores por defecto</button>
+                </div>
+                
+                <div id="admin-config-panel" class="space-y-6"></div>
+            </div>
+
+        </div>
+    </section>
+
+    <audio id="sfx-click" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" preload="auto"></audio>
+    <audio id="sfx-success" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto"></audio>
+    <audio id="sfx-error" src="https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3" preload="auto"></audio>
+
+    <script src="{% static 'misionemprende/js/01_config.js' %}"></script>
+    <script src="{% static 'misionemprende/js/02_core.js' %}"></script>
+    <script src="{% static 'misionemprende/js/03_fases.js' %}"></script>
+    <script src="{% static 'misionemprende/js/04_admin.js' %}"></script>
+    <script src="{% static 'misionemprende/js/05_globals.js' %}"></script>
+</body>
+</html>

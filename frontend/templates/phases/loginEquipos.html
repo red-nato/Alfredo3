@@ -1,0 +1,268 @@
+{% load static %} 
+<style>
+    /* Cargar la fuente 8-bit */
+    @font-face {
+        font-family: 'EightBit';
+        src: url('{% static "misionemprende/fonts/8bit.ttf" %}');
+    }
+    .font-8bit { font-family: 'EightBit', monospace; }
+    
+    /* Globito de chat para Helpi */
+    .helpi-bubble {
+        position: relative;
+        background: #ffffff;
+        border-radius: 1.5rem;
+        border: 4px solid #3b82f6; /* blue-500 */
+    }
+    .helpi-bubble::after {
+        content: '';
+        position: absolute;
+        bottom: -18px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 20px 20px 0;
+        border-style: solid;
+        border-color: #3b82f6 transparent transparent transparent;
+    }
+    .helpi-bubble::before {
+        content: '';
+        position: absolute;
+        bottom: -11px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 14px 14px 0;
+        border-style: solid;
+        border-color: #ffffff transparent transparent transparent;
+        z-index: 10;
+    }
+</style>
+
+<section id="view-login" class="fade-in">
+    
+    <div class="flex flex-col items-center justify-start min-h-screen pt-12 relative overflow-hidden">
+        
+        <div class="max-w-4xl w-full mx-auto px-4 relative z-10">
+            
+            <div id="login-step-1" class="transition-all duration-500 transform scale-100 opacity-100">
+                
+                <div class="flex flex-col items-center justify-center mb-8">
+                    <div class="helpi-bubble p-5 shadow-2xl mb-6 max-w-sm text-center animate-bounce-slow">
+                        <p class="text-blue-600 font-bold text-xl leading-tight">
+                            Recuerdame, soy Helpi.<br>
+                            <span class="text-base text-gray-500 font-medium">Como te prometí, siempre te ayudaré y guiaré. Ahora, ingresa el <span class="text-blue-600">código del juego</span> que tendrá el profesor.</span>
+                        </p>
+                    </div>
+                    <img src="{% static 'misionemprende/img/lilfinderguy.png' %}" class="h-52 drop-shadow-[0_15px_15px_rgba(59,130,246,0.4)]">
+                </div>
+                
+                <div class="bg-gray-900 border-4 border-blue-500 rounded-3xl p-8 shadow-[0_0_50px_rgba(59,130,246,0.3)] max-w-md mx-auto relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-blue-500/10 animate-pulse pointer-events-none"></div>
+                    
+                    <label class="block text-blue-400 font-bold mb-4 uppercase tracking-widest text-medium text-center">
+                        <i class="fas fa-terminal mr-2"></i> Código del Juego
+                    </label>
+                    
+                    <input type="text" id="input-code" maxlength="6" oninput="this.value = this.value.toUpperCase();" 
+                        class="w-full bg-black border-2 border-blue-500/50 text-blue-400 text-center text-4xl md:text-5xl py-6 rounded-xl focus:outline-none focus:border-blue-400 focus:shadow-[0_0_30px_rgba(59,130,246,0.6)] font-8bit transition-all placeholder-blue-900/50 tracking-[0.2em]" 
+                        placeholder="______">
+                    
+                    <button onclick="app.verifySessionCode()" class="mt-6 w-full bg-blue-600 hover:bg-blue-500 text-white font-8bit text-xl md:text-2xl py-4 rounded-xl shadow-[0_6px_0_#1e3a8a] active:shadow-[0_0_0_#1e3a8a] active:translate-y-2 transition-all flex items-center justify-center gap-3 group-hover:bg-blue-500">
+                        <i class="fas fa-plug text-lg"></i> CONECTAR
+                    </button>
+                </div>
+            </div>
+
+            <div id="login-step-2" class="hidden transition-all duration-700 opacity-0 transform translate-y-10 mt-16">
+                <div class="bg-white border-4 border-blue-500 rounded-3xl p-8 sm:p-12 shadow-[0_0_60px_rgba(59,130,246,0.3)] relative">
+                    
+                    <div class="absolute -top-16 -right-4 md:-right-12 z-20">
+                        <div class="bg-green-500 text-white text-xs font-bold px-3 py-2 rounded-full absolute -top-4 -left-10 shadow-lg border-2 border-white rotate-[-10deg] z-30 whitespace-nowrap">
+                            ¡Código Válido!
+                        </div>
+                        <img src="{% static 'misionemprende/img/HelpiLike.png' %}" class="h-28 drop-shadow-xl relative z-20">
+                    </div>
+
+                    <div class="flex justify-between items-center mb-8 border-b-2 border-gray-100 pb-4 relative z-10">
+                        <h3 class="text-3xl font-bold text-gray-800 gamer-font text-blue-600">Creación de Equipo</h3>
+                        <button onclick="app.showView('view-welcome')" class="text-gray-400 hover:text-red-500 bg-gray-100 p-2 rounded-full transition"><i class="fas fa-times"></i></button>
+                    </div>
+                    
+                    <div class="mb-8 relative z-10">
+                        <label class="block text-gray-700 font-bold mb-2 uppercase text-sm tracking-wider"><i class="fas fa-users mr-2 text-blue-500"></i> Nombre del Equipo</label>
+                        <input type="text" id="input-team-name" maxlength="30" class="w-full p-4 border-2 border-gray-200 bg-gray-50 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:bg-white transition text-xl font-bold text-gray-800" placeholder="Ej: Los Innovadores">
+                    </div>
+                    
+                    <div class="mb-8 bg-blue-50/50 p-6 rounded-2xl border border-blue-100 relative z-10">
+                        <div class="flex justify-between items-center mb-4">
+                            <label class="block text-gray-700 font-bold uppercase text-sm tracking-wider">Integrantes del Equipo</label>
+                            <span id="member-count" class="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">0/8</span>
+                        </div>
+                        
+                        <div id="members-list" class="space-y-2 mb-4 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                            </div>
+
+                        <div class="flex flex-col md:flex-row gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-200 focus-within:border-blue-400 focus-within:shadow-md transition-all">
+                            <input type="text" id="input-member-name" class="flex-grow p-2 bg-transparent border-none focus:ring-0 text-gray-800 font-bold placeholder-gray-400" placeholder="Nombre del Agente">
+                            <div class="w-px bg-gray-200 hidden md:block"></div>
+                            <select id="input-member-career" class="p-2 bg-transparent text-gray-600 text-sm font-bold focus:ring-0 border-none outline-none cursor-pointer">
+                                <option value="">Especialidad...</option>
+                                <option value="Ingeniería">Ingeniería</option>
+                                <option value="Diseño">Diseño</option>
+                                <option value="Salud">Salud</option>
+                                <option value="Negocios">Negocios</option>
+                                <option value="Otra">Otra</option>
+                            </select>
+                            <button onclick="app.playSound('click'); app.addMember()" class="bg-blue-500 text-white w-full md:w-12 h-12 rounded-lg hover:bg-blue-600 flex items-center justify-center text-xl font-bold shadow-md transition hover:scale-105 active:scale-95"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="bg-yellow-100 p-4 rounded-xl mb-6 border-l-4 border-yellow-400 flex items-start relative z-10">
+                        <i class="fas fa-satellite-dish text-yellow-600 text-xl mr-3 animate-pulse"></i>
+                        <p class="text-sm text-yellow-800 font-semibold leading-relaxed">Esperando sincronización global. El juego comenzará cuando todos los escuadrones estén en posición.</p>
+                    </div>
+
+                    <button onclick="enviarEquipoAlBackend()" 
+                        class="relative z-10 w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xl py-5 rounded-xl shadow-lg hover:shadow-indigo-500/50 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed" id="btn-start-game">
+                        <i class="fas fa-rocket mr-2"></i> Iniciar
+                    </button>
+                </div>
+            </div>
+            <div id="lobby-waiting-screen" class="hidden relative z-20 max-w-2xl mx-auto mt-16">
+                <div class="bg-gray-900/90 backdrop-blur-md rounded-3xl p-8 md:p-12 border-2 border-blue-500 shadow-[0_0_50px_rgba(59,130,246,0.3)] text-center relative overflow-visible mt-8">
+                    
+                    <div class="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-purple-500/10 rounded-3xl animate-pulse pointer-events-none"></div>
+
+                    <div class="absolute -top-14 left-1/2 transform -translate-x-1/2 z-30">
+                        <img src="{% static 'misionemprende/img/Helpis/HelpiSentado.png' %}" 
+                            class="h-40 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] hover:scale-105 transition-transform duration-300 cursor-pointer"
+                            onclick="app.playSound('nose')"
+                            alt="Helpi Esperando">
+                    </div>
+
+                    <div class="relative z-10 pt-4">
+                        <h3 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-4 gamer-font tracking-wide">
+                            ¡CONECTADO!
+                        </h3>
+                        <p class="text-gray-300 text-lg md:text-xl font-semibold mb-8 max-w-lg mx-auto leading-relaxed">
+                            El ayudante de Helpi (Profesor) iniciará el juego cuando todos los escuadrones estén en posición.
+                        </p>
+                        <div class="bg-black/60 rounded-xl p-5 border border-gray-700/50 inline-block w-full shadow-inner">
+                            <div class="flex items-center justify-center space-x-3 text-sm md:text-base text-red-400 font-bold uppercase tracking-widest mb-2">
+                                <i class="fas fa-circle text-red-500 animate-ping text-xs"></i>
+                                <span>Esperando señal de inicio...</span>
+                            </div>
+                            <p class="text-xs text-gray-500 font-mono opacity-80">
+                                (Todos sabemos que, en realidad, Helpi organiza todo)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<section id="view-game-intro" class="hidden fixed inset-0 z-[200] bg-slate-900/95 backdrop-blur-xl flex-col items-center justify-center px-4 overflow-hidden transition-opacity duration-1000 opacity-0">
+    
+    <div id="intro-step-1" class="transition-all duration-1000 transform scale-100 opacity-100 text-center w-full max-w-5xl">
+        <h1 class="text-5xl sm:text-6xl md:text-8xl font-bold text-white mb-4 gamer-font drop-shadow-[0_10px_20px_rgba(59,130,246,0.5)] leading-tight">
+            Misión<span class="text-blue-400">Emprende</span>
+        </h1>
+        <p class="text-blue-200 text-sm md:text-2xl font-bold tracking-[0.3em] uppercase mb-16 drop-shadow-md">
+            Aprende a emprender. Compite. Gana.
+        </p>
+
+        <div class="relative max-w-4xl mx-auto px-4">
+            <p class="text-gray-400 text-sm md:text-base uppercase tracking-widest mb-6 font-black">Habilidades que vas a practicar</p>
+            <div class="flex flex-wrap justify-center gap-4 mb-2">
+                <span class="bg-yellow-500 text-white text-sm md:text-base font-bold uppercase px-6 py-3 rounded-full shadow-lg shadow-yellow-500/30">
+                    <i class="fas fa-users mr-2"></i> Trabajo en equipo
+                </span>
+                <span class="bg-purple-500 text-white text-sm md:text-base font-bold uppercase px-6 py-3 rounded-full shadow-lg shadow-purple-500/30">
+                    <i class="fas fa-heart mr-2"></i> Empatía
+                </span>
+                <span class="bg-red-500 text-white text-sm md:text-base font-bold uppercase px-6 py-3 rounded-full shadow-lg shadow-red-500/30">
+                    <i class="fas fa-lightbulb mr-2"></i> Creatividad
+                </span>
+                <span class="bg-emerald-500 text-white text-sm md:text-base font-bold uppercase px-6 py-3 rounded-full shadow-lg shadow-emerald-500/30">
+                    <i class="fas fa-comments mr-2"></i> Comunicación
+                </span>
+                <span class="bg-orange-500 text-white text-sm md:text-base font-bold uppercase px-6 py-3 rounded-full shadow-lg shadow-orange-500/30">
+                    <i class="fas fa-handshake mr-2"></i> Negociación
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div id="intro-step-2" class="hidden absolute inset-0 flex-col items-center justify-center transition-all duration-1000 transform translate-y-12 opacity-0 text-center px-4 w-full">
+        <img src="{% static 'misionemprende/img/HelpiNormal.png' %}" class="h-56 md:h-72 drop-shadow-[0_20px_25px_rgba(59,130,246,0.6)] mb-10" alt="Helpi">
+        
+        <div class="bg-white rounded-3xl border-4 border-blue-500 p-8 md:p-10 shadow-[0_0_60px_rgba(59,130,246,0.3)] max-w-3xl relative">
+            <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-white border-t-4 border-l-4 border-blue-500 rotate-45"></div>
+            
+            <h3 class="text-3xl md:text-4xl font-black text-blue-600 mb-4 gamer-font uppercase tracking-wide drop-shadow-sm">¡Hola a todos, soy Helpi!</h3>
+            <p class="text-gray-700 text-lg md:text-2xl font-medium leading-relaxed mb-8">
+                Seré su guía en esta misión. A lo largo de todo el juego, pondré a prueba sus habilidades para crear un emprendimiento desde cero. ¿Están listos?
+            </p>
+            
+            <button onclick="app.finishGameIntro()" class="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-black text-xl md:text-2xl px-10 py-5 rounded-2xl shadow-[0_8px_0_#1e3a8a] hover:shadow-[0_4px_0_#1e3a8a] hover:translate-y-1 active:shadow-[0_0_0_#1e3a8a] active:translate-y-2 transition-all uppercase gamer-font">
+                ¡Comenzar Aventura!
+            </button>
+        </div>
+    </div>
+</section>
+<section id="view-lobby-intro" class="hidden fixed inset-0 z-[250] bg-slate-900/98 backdrop-blur-2xl flex-col items-center justify-center px-4 transition-opacity duration-1000 opacity-0 overflow-y-auto py-10">
+    
+    <div class="max-w-4xl w-full text-center">
+        <img src="{% static 'misionemprende/img/Helpis/HelpiContento.png' %}" class="h-40 mx-auto mb-6 drop-shadow-xl animate-bounce-slow">
+        
+        <h2 class="text-3xl md:text-5xl font-black text-white gamer-font mb-4 uppercase tracking-tighter">
+            ¡Antes de empezar!
+        </h2>
+        <p class="text-blue-300 text-lg md:text-xl font-bold mb-10 uppercase tracking-widest">Estas son las habilidades que trabajaremos:</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-3 mb-12">
+            <div class="bg-yellow-500/10 border-2 border-yellow-500 p-4 rounded-2xl shadow-[0_6px_0_#eab308] hover:-translate-y-1 transition-all duration-200 flex flex-col items-center">
+                <div class="text-yellow-500 text-3xl mb-2 drop-shadow-md"><i class="fas fa-users"></i></div>
+                <p class="text-yellow-400 font-bold text-sm uppercase mb-2 text-center">Trabajo en Equipo</p>
+                <p class="text-gray-200 text-xs leading-tight text-center">Sinergia colaborativa: articular talentos y esfuerzos es la piedra angular para edificar y escalar cualquier visión empresarial.</p>
+            </div>
+
+            <div class="bg-purple-500/10 border-2 border-purple-500 p-4 rounded-2xl shadow-[0_6px_0_#a855f7] hover:-translate-y-1 transition-all duration-200 flex flex-col items-center">
+                <div class="text-purple-500 text-3xl mb-2 drop-shadow-md"><i class="fas fa-heart"></i></div>
+                <p class="text-purple-400 font-bold text-sm uppercase mb-2 text-center">Empatía</p>
+                <p class="text-gray-200 text-xs leading-tight text-center">Inmersión analítica: descifrar las aflicciones latentes del usuario para vertebrar soluciones genuinamente significativas.</p>
+            </div>
+
+            <div class="bg-red-500/10 border-2 border-red-500 p-4 rounded-2xl shadow-[0_6px_0_#ef4444] hover:-translate-y-1 transition-all duration-200 flex flex-col items-center">
+                <div class="text-red-500 text-3xl mb-2 drop-shadow-md"><i class="fas fa-lightbulb"></i></div>
+                <p class="text-red-400 font-bold text-sm uppercase mb-2 text-center">Creatividad</p>
+                <p class="text-gray-200 text-xs leading-tight text-center">Inventiva aplicada: transmutar conceptos abstractos en prototipos tangibles, iterando con audacia para desafiar lo convencional.</p>
+            </div>
+
+            <div class="bg-emerald-500/10 border-2 border-emerald-500 p-4 rounded-2xl shadow-[0_6px_0_#10b981] hover:-translate-y-1 transition-all duration-200 flex flex-col items-center">
+                <div class="text-emerald-500 text-3xl mb-2 drop-shadow-md"><i class="fas fa-comments"></i></div>
+                <p class="text-emerald-400 font-bold text-sm uppercase mb-2 text-center">Comunicación</p>
+                <p class="text-gray-200 text-xs leading-tight text-center">Ser persuasivo/a es una habilidad invaluable. Todo ello aprte por ser capáz de expresar claramente nuestras .</p>
+            </div>
+
+            <div class="bg-orange-500/10 border-2 border-orange-500 p-4 rounded-2xl shadow-[0_6px_0_#f97316] hover:-translate-y-1 transition-all duration-200 flex flex-col items-center">
+                <div class="text-orange-500 text-3xl mb-2 drop-shadow-md"><i class="fas fa-handshake"></i></div>
+                <p class="text-orange-400 font-bold text-sm uppercase mb-2 text-center">Negociación</p>
+                <p class="text-gray-200 text-xs leading-tight text-center">La palabra es importante, pero también qué hacer con ella. El aprender a negociar abre muchas puertas en la vida, incluido el emprender.</p>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-center gap-3 mb-4 mt-8">
+            <h2 class="text-3xl font-8bit text-blue-400 gamer-font tracking-wide uppercase">HELPICOINS</h2>
+            <img src="{% static 'misionemprende/img/HelpiCoin.png' %}" class="w-14 h-14 drop-shadow-md" alt="HelpiCoin">
+        </div>
+        
+        <p class="text-gray-200 text-base md:text-lg mb-10">
+            Ganarás <span class="font-bold uppercase text-sm">HELPICOINS</span> a lo largo del juego. El que tenga más, ¡Gana!
+        </p>
+
+        <button onclick="app.closeLobbyIntro()" class="bg-green-500 hover:bg-green-400 text-white font-black text-xl px-12 py-5 rounded-2xl shadow-[0_8px_0_#15803d] transition-all uppercase gamer-font">
+            ¡Entendido, Helpi!
+        </button>
+    </div>
+</section>

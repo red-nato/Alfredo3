@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Esto es CRUCIAL para SQLite en Docker:
+      # Montamos un archivo local para que la base de datos no se borre al reiniciar
+      - ./produccion.sqlite3:/app/backend/db.sqlite3
+    environment:
+      - DEBUG=False
+      # Genera una clave secreta real para AWS, aquí usamos una de prueba
+      - SECRET_KEY=django-insecure-clave-prueba-docker
+      - ALLOWED_HOSTS=*
