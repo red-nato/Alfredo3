@@ -192,3 +192,25 @@ class EquipoDesafio(models.Model):
     def __str__(self):
         return f"{self.equipo.nombre} eligió: {self.desafio.titulo}"
 
+class EventoPuntaje(models.Model):
+    TIPO_EVENTO = [
+        ('PREMIO_FASE_1', 'Premio por completar Fase 1'),
+        ('PREMIO_PITCH', 'Premio por presentar Pitch'),
+        ('INVERSION_RECIBIDA', 'Inversión de otro equipo (Fase 5)'),
+        ('BONO_ADMIN', 'Bono manual del profesor'),
+        ('CONSUELO', 'Moneda de consuelo por no evaluar')
+    ]
+    
+    equipo = models.ForeignKey('Equipo', on_delete=models.CASCADE, related_name='eventos_puntaje')
+    sesion = models.ForeignKey('Sesion', on_delete=models.CASCADE)
+    tipo = models.CharField(max_length=50, choices=TIPO_EVENTO)
+    valor = models.IntegerField()
+    
+    # El "Payload" del evento 
+    detalles = models.JSONField(default=dict, blank=True)
+    
+    # Inmutable: Nunca se modifica después de creado
+    creado_en = models.DateTimeField(auto_now_add=True) 
+
+    class Meta:
+        ordering = ['creado_en'] # El orden cronológico es vital en Event Sourcing

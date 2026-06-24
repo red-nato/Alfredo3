@@ -3,10 +3,11 @@ from django.utils import timezone
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
+from django.db.models import Sum
 import random
 from .models import (
     Profesor, Sesion, Alumno, Equipo, 
-    EquipoAlumno, Token
+    EquipoAlumno, Token, EventoPuntaje
 )
 
 
@@ -499,53 +500,40 @@ def obtener_admin_stats(request):
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
 
+def calcular_puntaje_actual(equipo):
+   
+    resultado = EventoPuntaje.objects.filter(equipo=equipo).aggregate(total=Sum('valor'))
+    return resultado['total'] or 0
+
 @csrf_exempt
 def agregar_tokens(request):
-    """Agrega tokens a un equipo"""
     if request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
     
     try:
         data = json.loads(request.body)
-        equipo_id = data.get("equipo_id")
-        sesion_id = data.get("sesion_id")  # Puede ser el ID o código
-        valor = data.get("valor", 0)
-        origen = data.get("origen", "ACTIVIDAD")
-        descripcion = data.get("descripcion", "")
+        equipo = Equipo.objects.get(id=data.get("equipo_id"))
+        sesion = Sesion.objects.get(id=data.get("sesion_id"))
         
-        if not equipo_id or not sesion_id:
-            return JsonResponse({"error": "equipo_id y sesion_id son requeridos"}, status=400)
-        
-        # Buscar sesión por código o ID
-        try:
-            if isinstance(sesion_id, str) and len(sesion_id) == 6:
-                sesion = Sesion.objects.get(codigo_acceso=sesion_id.upper())
-            else:
-                sesion = Sesion.objects.get(id=sesion_id)
-        except Sesion.DoesNotExist:
-            return JsonResponse({"error": "Sesión no encontrada"}, status=404)
-        
-        equipo = Equipo.objects.get(id=equipo_id, sesion=sesion)
-        
-        # Crear token
-        token = Token.objects.create(
+        # 1. EVENT SOURCING (Append-Only)
+        # Guardamos el hecho que ocurrió. Nunca mutamos el estado de 'equipo'.
+        EventoPuntaje.objects.create(
             equipo=equipo,
             sesion=sesion,
-            origen=origen,
-            valor=valor,
-            descripcion=descripcion
+            tipo=data.get("origen", "BONO_ADMIN"),
+            valor=data.get("valor", 0),
+            detalles={"descripcion": data.get("descripcion", "")}
         )
         
-        # Actualizar puntaje total del equipo
-        equipo.puntaje_total += valor
-        equipo.save()
+        # 2. LECTURA DEL ESTADO
+        # Rehidratamos el puntaje actual leyendo la historia
+        nuevo_puntaje = calcular_puntaje_actual(equipo)
         
         return JsonResponse({
             "status": "ok",
-            "token_id": token.id,
-            "nuevo_puntaje": equipo.puntaje_total
+            "nuevo_puntaje": nuevo_puntaje
         })
-    
+        
     except Equipo.DoesNotExist:
         return JsonResponse({"error": "Equipo no encontrado"}, status=404)
     except Exception as e:
