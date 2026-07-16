@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: "Lambda simple para Misi\xF3n Emprende: genera un nombre aleatorio de\
+  \ equipo. Expuesto v\xEDa API Gateway (HTTP API) con CORS habilitado.\n"
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+    Runtime: python3.12
+Parameters:
+  ExecutionRoleArn:
+    Type: String
+    Description: "ARN del rol IAM que usar\xE1 el Lambda para ejecutarse. En cuentas\
+      \ de AWS Academy Learner Lab (vocLabs) el usuario NO tiene permiso para crear\
+      \ roles IAM nuevos, as\xED que hay que reutilizar el rol ya provisto por el\
+      \ laboratorio (normalmente se llama \"LabRole\"). B\xFAscalo en la consola de\
+      \ IAM \u2192 Roles, o con:\n  aws iam list-roles --query \"Roles[?contains(RoleName,'LabRole')].Arn\"\
+      \n"
+    Default: ''
+Conditions:
+  UseCustomRole:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: ExecutionRoleArn
+      - ''
+Resources:
+  GenerarNombreEquipoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: generar-nombre-equipo
+      Handler: lambda_function.lambda_handler
+      CodeUri: GenerarNombreEquipoFunction
+      Description: "Genera un nombre aleatorio para un equipo (Misi\xF3n Emprende)"
+      Role:
+        Fn::If:
+        - UseCustomRole
+        - Ref: ExecutionRoleArn
+        - Ref: AWS::NoValue
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: NombreEquipoHttpApi
+            Path: /generar-nombre-equipo
+            Method: GET
+    Metadata:
+      SamResourceId: GenerarNombreEquipoFunction
+  NombreEquipoHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+        - '*'
+        AllowMethods:
+        - GET
+        - OPTIONS
+        AllowHeaders:
+        - Content-Type
+Outputs:
+  ApiUrl:
+    Description: "URL p\xFAblica del endpoint (usar en el frontend, ver 01_config.js)"
+    Value:
+      Fn::Sub: https://${NombreEquipoHttpApi}.execute-api.${AWS::Region}.amazonaws.com/generar-nombre-equipo

@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Lambda simple para Misión Emprende: genera un nombre aleatorio de equipo.
+  Expuesto vía API Gateway (HTTP API) con CORS habilitado.
+
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+    Runtime: python3.12
+
+Parameters:
+  ExecutionRoleArn:
+    Type: String
+    Description: >
+      ARN del rol IAM que usará el Lambda para ejecutarse. En cuentas de
+      AWS Academy Learner Lab (vocLabs) el usuario NO tiene permiso para
+      crear roles IAM nuevos, así que hay que reutilizar el rol ya
+      provisto por el laboratorio (normalmente se llama "LabRole").
+      Búscalo en la consola de IAM → Roles, o con:
+        aws iam list-roles --query "Roles[?contains(RoleName,'LabRole')].Arn"
+    Default: ""
+
+Conditions:
+  UseCustomRole: !Not [!Equals [!Ref ExecutionRoleArn, ""]]
+
+Resources:
+  GenerarNombreEquipoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: generar-nombre-equipo
+      Handler: lambda_function.lambda_handler
+      CodeUri: .
+      Description: Genera un nombre aleatorio para un equipo (Misión Emprende)
+      Role: !If [UseCustomRole, !Ref ExecutionRoleArn, !Ref "AWS::NoValue"]
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref NombreEquipoHttpApi
+            Path: /generar-nombre-equipo
+            Method: GET
+
+  NombreEquipoHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+
+Outputs:
+  ApiUrl:
+    Description: URL pública del endpoint (usar en el frontend, ver 01_config.js)
+    Value: !Sub "https://${NombreEquipoHttpApi}.execute-api.${AWS::Region}.amazonaws.com/generar-nombre-equipo"
