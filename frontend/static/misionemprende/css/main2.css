@@ -1,0 +1,419 @@
+:root {
+    --udd-magenta: #1b61f7;
+    --udd-dark: #002c93;
+    --game-accent: #d000ff; /* Dorado */
+}
+body {
+    font-family: 'Montserrat', sans-serif;
+    /* Fondo gamer degradado */
+    background: linear-gradient(135deg, #0f172a 0%, #332e7e 50%, #355cde 100%);
+    color: #e2e8f0;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+h1, h2, h3, .gamer-font {
+    font-family: 'Russo One', sans-serif;
+    letter-spacing: 1px;
+}
+@font-face {
+    font-family: 'MonobrainsCustom';
+    /* Usamos la ruta relativa a donde esté tu CSS */
+    src: url('../fonts/monobrains1.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+.font-mono-tech {
+    font-family: 'MonobrainsCustom', monospace !important;
+    letter-spacing: 1px;
+    color: #000000;
+}
+.udd-color { color: var(--udd-magenta); }
+.udd-bg { background-color: var(--udd-magenta); }
+.udd-gradient { background: linear-gradient(45deg, var(--udd-magenta), var(--udd-dark)); }
+.game-card {
+    background: #ffffff;
+    border-radius: 1rem;
+    border-bottom: 4px solid rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    color: #1a202c;
+}
+.game-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    border-bottom-color: var(--udd-magenta);
+}
+
+/* Animaciones */
+.fade-in { animation: fadeIn 0.5s ease-in; }
+.bounce-in { animation: bounceIn 0.8s; }
+.slide-up { animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bounceIn {
+    0% { opacity: 0; transform: scale(0.3); }
+    50% { opacity: 1; transform: scale(1.05); }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
+@keyframes slideUp {
+    0% { transform: translateY(100px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes popIn {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+/* Estilos Específicos */
+.token-badge {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    color: #1a202c;
+    text-shadow: 0px 1px 0px rgba(255,255,255,0.5);
+}
+
+.white-text {
+    color: #eef2f8;
+    text-shadow: 0px 1px 0px rgb(143, 76, 123);
+}
+
+
+/* Bubble Map */
+.bubble-container {
+    position: relative;
+    height: 600px; /* Aumentado para dar aire a burbujas más grandes */
+    width: 100%;
+    max-width: 800px; /* Asegura que no se dispare en pantallas gigantes */
+    margin: 0 auto; /* Centrado horizontal respecto al padre */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: visible; /* Permitir que los stickers sobresalgan un poco */
+}
+.bubble-center {
+    width: 140px; height: 140px; border-radius: 50%;
+    background: var(--udd-magenta); color: white;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 255, 255, 0.5);
+    text-align: center;
+}
+.bubble-node {
+    position: absolute;
+    background: white;
+    padding: 15px; /* Más padding interno */
+    border-radius: 15px; /* Bordes más suaves */
+    width: 180px; /* Aumentado de 140px */
+    min-height: 100px; /* Altura mínima para que se vean más robustas */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border: 3px solid #f3f4f6;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+.bubble-node:focus-within { border-color: var(--udd-magenta); z-index: 20; }
+/* Ajustar el textarea para las nuevas dimensiones */
+.bubble-node textarea {
+    width: 100%;
+    height: 100%;
+    font-size: 0.85rem; /* Texto un poco más legible */
+    color: #1a202c !important; /* Corregido: antes era muy claro (#eeeeee) */
+}
+
+/* Ahora si mierda */
+@media (min-width: 769px) {
+    .pos-1 { top: 0%; left: 50%; transform: translateX(-50%); } 
+    .pos-6 { bottom: 0%; left: 50%; transform: translateX(-50%); } 
+    
+    /* Metimos las burbujas laterales hacia adentro cambiando el -5% por 2% */
+    .pos-3 { top: 50%; right: 2%; transform: translateY(-50%); } 
+    .pos-8 { top: 50%; left: 2%; transform: translateY(-50%); } 
+    
+    .pos-2 { top: 10%; right: 5%; }
+    .pos-4 { top: 10%; left: 5%; }
+    .pos-5 { bottom: 10%; right: 5%; }
+    .pos-7 { bottom: 10%; left: 5%; }
+}
+
+/* FINALMENTE LO LOGRÉ CTM*/
+@media (max-width: 768px) {
+    .bubble-container {
+        height: auto !important;
+        flex-direction: column;
+        padding: 20px;
+        gap: 15px; 
+    }
+
+    .bubble-center {
+        order: -1; /* el ckfculo rosa va primero (arriba) */
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .bubble-node {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        transform: none !important;
+        
+        width: 100%;
+        max-width: 300px;
+    }
+}
+.helpi-sticker {
+    position: absolute;
+    width: 45px;
+    height: 45px;
+    z-index: 30;
+    pointer-events: none; /* Que no moleste al hacer click en el textarea */
+    filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2));
+}
+
+.top-right { top: -20px; right: -20px; transform: rotate(15deg); }
+.bottom-left { bottom: -20px; left: -20px; transform: rotate(-15deg); }
+
+/* Sopa de letras */
+.word-grid {
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    gap: 4px;
+    width: min(92vw, 680px);
+    max-width: 680px;
+    margin: 0 auto;
+}
+.letter-cell {
+    background: #f0f4f8; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: clamp(12px, 1.8vw, 18px); cursor: pointer; border-radius: 8px; color: #333; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.1);
+    transition: all 0.2s;
+}
+.letter-cell:hover { background-color: #e2e8f0; }
+.letter-cell.selected { background-color: #fcd34d; color: #333; transform: scale(0.95); box-shadow: inset 0 2px 0 rgba(0,0,0,0.2); } /* Amarillo al seleccionar */
+.letter-cell.found { background-color: #22c55e !important; color: white !important; transform: scale(1); animation: bounceIn 0.5s; } /* Verde al encontrar */
+.letter-cell.correct-word { background-color: #f87171 !important; color: white !important; } /* Rojo/Rosa al timeout */
+
+/* Utilería */
+section { display: none; }
+section.active { display: block; }
+.hidden { display: none !important; }
+
+/* Estilo para descripciones de persona */
+.persona-card:hover .persona-description {
+    max-height: 560px; /* Hace visible la descripción */
+    opacity: 1;
+    padding-top: 12px;
+}
+.persona-description {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.5s ease-in-out;
+}
+
+/* Estilos para campos de entrada (inputs) */
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+    background-color: #ffffff;
+    color: #1a202c;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--udd-magenta) !important;
+    box-shadow: 0 0 0 4px rgba(212, 15, 125, 0.2) !important;
+}
+
+/* Asegurar que los inputs dentro de game-card tengan fondo blanco */
+.game-card input[type="text"],
+.game-card input[type="number"],
+.game-card select,
+.game-card textarea {
+    background-color: #ffffff !important;
+    color: #1a202c !important;
+}
+
+/* Estilos para inputs con clases de Tailwind */
+input.bg-white,
+select.bg-white,
+textarea.bg-white {
+    background-color: #ffffff !important;
+}
+
+/* Agrega esto al final de tu archivo main2.css */
+
+/* Cuando la sección de selección de personajes esté activa, le damos sus poderes */
+section.active#view-stage2-persona-select {
+    display: flex !important;
+    flex-direction: column;
+    min-height: 100vh; /* Altura completa */
+}
+
+/* --- ESTILOS DE TRANSICIÓN GAMER --- */
+
+/* Asegurar centrado (Vital para que no se vaya a la esquina) */
+section.active#view-transition {
+    display: flex !important;
+}
+
+
+@keyframes spinSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+    animation: spinSlow 12s linear infinite;
+}
+
+/* Animación de rotación inversa para el anillo del contador */
+@keyframes spinReverse {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+}
+.animate-spin-reverse {
+    animation: spinReverse 10s linear infinite;
+}
+
+/* Rebote más lento y espacial para el cohete */
+@keyframes bounceSlow {
+    0%, 100% { transform: translateY(-5%); }
+    50% { transform: translateY(5%); }
+}
+.animate-bounce-slow {
+    animation: bounceSlow 2s infinite ease-in-out;
+}
+/* --- REGLAS DE VISUALIZACIÓN PARA VISTAS NUEVAS --- */
+
+/* 1. Login de Admin (Necesita Flex para centrar la tarjeta) */
+section.active#view-admin-login {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 2. Dashboard Admin (Necesita Block normal para el scroll) */
+section.active#view-admin-dashboard {
+    display: block !important;
+}
+
+/* 3. Vista Profesor (Necesita Flex columna) */
+section.active#view-professor {
+    display: flex !important;
+    flex-direction: column;
+}
+
+/* Animación de entrada: Desde la derecha (100%) al centro (0) */
+@keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+/* Animación de salida: Desde el centro (0) hacia la izquierda (-100%) */
+@keyframes slideOutLeft {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+}
+
+/* Clases que aplicaremos con JavaScript */
+.slide-in-right { 
+    animation: slideInRight 0.8s forwards cubic-bezier(0.8, 0, 0.2, 1); 
+}
+.slide-out-left { 
+    animation: slideOutLeft 0.8s forwards cubic-bezier(0.8, 0, 0.2, 1); 
+}
+
+ @keyframes popOutLeft {
+    /* Mantenemos el -50% en Y para que siga centrada verticalmente */
+    0% { transform: translate(-100%, -50%); }
+    70% { transform: translate(10%, -50%); }
+    100% { transform: translate(0, -50%); }
+}
+
+.pop-out-left {
+    animation: popOutLeft 0.5s ease-out forwards;
+}
+
+/* DISEÑO BASE */
+.hud-button {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    will-change: transform, left, top;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    /* Suavizamos también el cambio de padding para que se vea elegante */
+    transition: transform 0.3s ease-out, padding 0.5s ease; 
+}
+
+/* ESTADO 1: Centro (Píldora ancha con texto) */
+.comm-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.3);
+    box-shadow: 0 0 100px rgba(212,15,125,1);
+    
+    border: 2px solid rgba(212, 15, 125, 0.5);
+    border-radius: 9999px;
+    padding: 8px 24px 8px 12px; /* Más espacio a la derecha para el texto */
+}
+
+/* ESTADO 2: Anclado (Con "cola" escondida) */
+.comm-docked {
+    top: 50%;
+    left: 100%;
+    
+    /* 1. EL TRUCO: 8px de espacio normal, pero 24px a la derecha (una cola larga) */
+    padding: 8px 24px 8px 8px; 
+    
+    /* 2. Empujamos esos 16px extra de "cola" FUERA de la pantalla */
+    transform: translate(calc(-100% + 16px), -50%) scale(0.85);
+    transform-origin: right center;
+    
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+    
+    /* El corte perfecto */
+    border: 2px solid rgba(212, 15, 125, 0.5);
+    border-right: none;
+    border-radius: 9999px 0 0 9999px;
+}
+
+/* Hover suave */
+.comm-docked:hover {
+    /* 3. Lo tiramos hacia la izquierda hasta el ras (-100%). 
+       La "cola" entra a la pantalla, haciendo que el botón "salga" 
+       sin jamás despegarse del borde de tu monitor. */
+    transform: translate(-100%, -50%) scale(0.9);
+}
+
+/* Animación para que el modal "brote" desde el botón derecho */
+@keyframes expandFromRight {
+    from { transform: scale(0) translate(50%, 0); opacity: 0; transform-origin: center right; }
+    to { transform: scale(1) translate(0, 0); opacity: 1; transform-origin: center right; }
+}
+.expand-from-right {
+    animation: expandFromRight 0.4s ease-out forwards;
+}
+
+/* Agrega al final de main2.css */
+
+/* Filtro para que la imagen png normal de Helpi adquiera un toque un poco más pixelado/nítido */
+.retro-pixel {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+/* Animación de error visual (si no la tenías en tailwind.config) */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+}
+
+.animate-shake {
+    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
