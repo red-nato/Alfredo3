@@ -1,13 +1,16 @@
 import { DomainError } from '../../domain/errors.js';
 import { sessionCode } from '../../domain/entities/session.js';
+import { bearerToken } from './auth-controller.js';
 
 const response = (statusCode, body) => ({ statusCode, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(body) });
 const parseBody = (event) => { if (!event.body) return {}; try { return JSON.parse(event.body); } catch { throw new DomainError('JSON inválido'); } };
+const ADMIN_OPERATIONS = new Set(['start', 'pause', 'next', 'adminStats']);
 
 export class GameController {
-  constructor(useCases) { this.useCases = useCases; }
+  constructor(useCases, authUseCases) { this.useCases = useCases; this.authUseCases = authUseCases; }
   async handle(operation, event) {
     try {
+      if (ADMIN_OPERATIONS.has(operation)) await this.authUseCases.verify(bearerToken(event));
       const query = event.queryStringParameters ?? {}; const body = ['getTeams', 'validateSession', 'gameState', 'start', 'pause', 'next', 'adminStats'].includes(operation) ? query : parseBody(event);
       let result;
       switch (operation) {

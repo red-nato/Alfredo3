@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
-  GetCommand, PutCommand, QueryCommand, ScanCommand, TransactWriteCommand, UpdateCommand,
+  DeleteCommand, GetCommand, PutCommand, QueryCommand, ScanCommand, TransactWriteCommand, UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { documentClient } from '../database/dynamodb/client.js';
 import { GameRepository } from '../../domain/repositories/game-repository.js';
@@ -10,6 +10,8 @@ import { normalise } from '../../domain/entities/session.js';
 const key = (code) => `SESSION#${code}`;
 const metaKey = (code) => ({ PK: key(code), SK: 'META' });
 const teamKey = (code, name) => ({ PK: key(code), SK: `TEAM#${encodeURIComponent(normalise(name))}` });
+const adminKey = (username) => ({ PK: `ADMIN#${username}`, SK: 'META' });
+const adminSessionKey = (token) => ({ PK: `ADMINSESSION#${token}`, SK: 'META' });
 const toTeam = (item) => item && ({ id: item.id, nombre: item.nombre, puntaje_total: item.puntajeTotal ?? 0, integrantes: item.integrantes ?? [], miembros: item.integrantes ?? [], termino_fase_actual: !!item.terminoFaseActual, ya_presento_pitch: !!item.yaPresentoPitch });
 
 export class DynamoGameRepository extends GameRepository {
@@ -85,4 +87,18 @@ export class DynamoGameRepository extends GameRepository {
     return response.Items ?? [];
   }
   async touchTeam(codigo, nombre) { return this.updateTeam(codigo, nombre, { ultimaConexion: new Date().toISOString() }); }
+  async getAdmin(username) {
+    const response = await this.client.send(new GetCommand({ TableName: this.tableName, Key: adminKey(username) }));
+    return response.Item;
+  }
+  async createAdminSession({ token, username, expiresAt }) {
+    await this.client.send(new PutCommand({ TableName: this.tableName, Item: { ...adminSessionKey(token), entityType: 'ADMIN_SESSION', username, expiresAt, ttl: expiresAt } }));
+  }
+  async getAdminSession(token) {
+    const response = await this.client.send(new GetCommand({ TableName: this.tableName, Key: adminSessionKey(token) }));
+    return response.Item;
+  }
+  async deleteAdminSession(token) {
+    await this.client.send(new DeleteCommand({ TableName: this.tableName, Key: adminSessionKey(token) }));
+  }
 }

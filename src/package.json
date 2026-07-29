@@ -10,7 +10,8 @@
   "scripts": {
     "test": "node --test",
     "local:table": "sh scripts/create-local-table.sh",
-    "local:table:reset": "sh scripts/create-local-table.sh --reset"
+    "local:table:reset": "sh scripts/create-local-table.sh --reset",
+    "admin:create": "node scripts/create-admin-user.js"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1091.0",

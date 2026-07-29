@@ -6,29 +6,43 @@ Object.assign(app, {
     // -------------------------------------------------------------
     // 1. LOGIN Y NAVEGACIÓN ADMIN
     // -------------------------------------------------------------
-    adminLogin: function() {
-    const user = document.getElementById('admin-user').value;
+    adminLogin: async function() {
+    const user = document.getElementById('admin-user').value.trim();
     const pass = document.getElementById('admin-pass').value;
-    
-    if ((user === 'admin' && pass === 'helpi') || (user === 'shlam' && pass === '1234')) { 
+
+    try {
+        const response = await apiFetch('/api/admin/login/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, password: pass }),
+        });
+        const data = await response.json();
+        if (!response.ok || data.status !== 'ok') throw new Error(data.error || 'Acceso denegado.');
+
+        sessionStorage.setItem('misionEmprendeAdminToken', data.token);
         this.playSound('success');
         this.showView('view-admin-dashboard');
-        // -----------------------------------------------------------------
-        
+
         setTimeout(() => {
             this.loadAdminData();
             this._renderAdminConfigPanel();
             this._switchAdminTab('teams');
         }, 100);
-    } else {
+    } catch (error) {
         this.playSound('error');
-        this.showToast('Acceso denegado.', 'error');
+        this.showToast(error.message || 'Acceso denegado.', 'error');
         const passEl = document.getElementById('admin-pass');
-        if (passEl) { 
-            passEl.classList.add('border-red-500','animate-shake'); 
-            setTimeout(() => passEl.classList.remove('border-red-500','animate-shake'), 500); 
+        if (passEl) {
+            passEl.classList.add('border-red-500','animate-shake');
+            setTimeout(() => passEl.classList.remove('border-red-500','animate-shake'), 500);
         }
     }
+},
+
+    adminLogout: function() {
+    apiFetch('/api/admin/logout/', { method: 'POST' }).catch(() => {});
+    sessionStorage.removeItem('misionEmprendeAdminToken');
+    this.goHome();
 },
 
     _switchAdminTab: function(tab) {
