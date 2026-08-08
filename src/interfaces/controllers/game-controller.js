@@ -3,12 +3,18 @@ import { sessionCode } from '../../domain/entities/session.js';
 
 const response = (statusCode, body) => ({ statusCode, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(body) });
 const parseBody = (event) => { if (!event.body) return {}; try { return JSON.parse(event.body); } catch { throw new DomainError('JSON inválido'); } };
+const adminOperations = new Set(['start', 'pause', 'next', 'adminStats']);
+const isAdmin = (event) => {
+  const groups = event.requestContext?.authorizer?.claims?.['cognito:groups'];
+  return (Array.isArray(groups) ? groups : String(groups ?? '').split(',')).map((group) => group.trim()).includes('Admins');
+};
 
 export class GameController {
   constructor(useCases) { this.useCases = useCases; }
   async handle(operation, event) {
     try {
       const query = event.queryStringParameters ?? {}; const body = ['getTeams', 'validateSession', 'gameState', 'start', 'pause', 'next', 'adminStats'].includes(operation) ? query : parseBody(event);
+      if (adminOperations.has(operation) && !isAdmin(event)) throw new DomainError('Se requiere un usuario del grupo Admins', 403);
       let result;
       switch (operation) {
         case 'createSession': result = await this.useCases.createSession(body); break;

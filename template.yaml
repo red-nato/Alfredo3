@@ -12,12 +12,16 @@ Parameters:
       bloqueado, así que SAM no puede generar un rol por función ni el rol de
       CodeDeploy. Cambia este único valor (via --parameter-overrides o en
       samconfig.toml) si el rol reutilizable tiene otro nombre en tu cuenta.
+  FrontendCallbackUrl:
+    Type: String
+    Default: http://localhost:8080/panel-admin/
+    Description: URL exacta del panel admin a la que Cognito redirige tras iniciar o cerrar sesión.
 
 Globals:
   Api:
     Cors:
       AllowMethods: "'GET,POST,OPTIONS'"
-      AllowHeaders: "'Content-Type'"
+      AllowHeaders: "'Content-Type,Authorization'"
       AllowOrigin: "'*'"
   Function:
     Runtime: nodejs22.x
@@ -31,6 +35,61 @@ Globals:
         DYNAMODB_ENDPOINT: ''
 
 Resources:
+  GameApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+      Auth:
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          AdminCognitoAuthorizer:
+            UserPoolArn: !GetAtt AdminUserPool.Arn
+
+  AdminUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub '${AWS::StackName}-admins'
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+      MfaConfiguration: OPTIONAL
+      EnabledMfas: [SOFTWARE_TOKEN_MFA]
+
+  AdminUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub '${AWS::StackName}-admin-web'
+      UserPoolId: !Ref AdminUserPool
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [implicit]
+      AllowedOAuthScopes: [openid, profile, email]
+      CallbackURLs: [!Ref FrontendCallbackUrl]
+      LogoutURLs: [!Ref FrontendCallbackUrl]
+      SupportedIdentityProviders: [COGNITO]
+
+  AdminUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub 'mision-emprende-admin-${AWS::AccountId}'
+      UserPoolId: !Ref AdminUserPool
+
+  AdminsGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Admins
+      UserPoolId: !Ref AdminUserPool
+
   GameTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -65,7 +124,7 @@ Resources:
       Handler: functions/health/handler.handler
       Description: Comprueba que la API y la arquitectura de aplicación estén operativas.
       Role: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${ExecutionRoleName}'
-      Events: {Health: {Type: Api, Properties: {Path: /health, Method: get}}}
+      Events: {Health: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /health, Method: get}}}
 
   CreateSessionFunction:
     Type: AWS::Serverless::Function
@@ -79,81 +138,90 @@ Resources:
       DeploymentPreference:
         Type: Canary10Percent5Minutes
         Role: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${ExecutionRoleName}'
-      Events: {Api: {Type: Api, Properties: {Path: /api/crear-sesion, Method: post}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/crear-sesion, Method: post}}}
   RegisterTeamFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/register-team/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/registrar-equipo, Method: post}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/registrar-equipo, Method: post}}}
   GetTeamsFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/get-teams/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: '/api/obtener-equipos/{codigo}', Method: get}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: '/api/obtener-equipos/{codigo}', Method: get}}}
   AddTokensFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/add-tokens/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/agregar-tokens, Method: post}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/agregar-tokens, Method: post}}}
   ValidateSessionFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/validate-session/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/validar-sesion, Method: get}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/validar-sesion, Method: get}}}
   GameStateFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/game-state/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/estado-juego, Method: get}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/estado-juego, Method: get}}}
   FinishPhaseFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/finish-phase/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/equipo/terminar-fase, Method: post}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/equipo/terminar-fase, Method: post}}}
   AdminStartFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/admin-start/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/admin/start, Method: post}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/admin/start, Method: post, Auth: {Authorizer: AdminCognitoAuthorizer}}}}
   AdminPauseFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/admin-pause/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/admin/pause, Method: post}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/admin/pause, Method: post, Auth: {Authorizer: AdminCognitoAuthorizer}}}}
   AdminNextFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/admin-next/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/admin/next, Method: post}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/admin/next, Method: post, Auth: {Authorizer: AdminCognitoAuthorizer}}}}
   TeamReadyFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/team-ready/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/equipo-listo, Method: post}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/equipo-listo, Method: post}}}
   FinishPitchFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/finish-pitch/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/terminar-pitch, Method: post}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/terminar-pitch, Method: post}}}
   AdminStatsFunction:
     Type: AWS::Serverless::Function
     Properties:
       <<: *GameFunction
       Handler: functions/admin-stats/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/admin-stats, Method: get}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/admin-stats, Method: get, Auth: {Authorizer: AdminCognitoAuthorizer}}}}
 
 Outputs:
   ApiUrl:
     Description: URL base de la API desplegada.
-    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod'
+    Value: !Sub 'https://${GameApi}.execute-api.${AWS::Region}.amazonaws.com/Prod'
+  AdminUserPoolId:
+    Description: ID del User Pool de administradores.
+    Value: !Ref AdminUserPool
+  AdminUserPoolClientId:
+    Description: Client ID público para el panel administrativo.
+    Value: !Ref AdminUserPoolClient
+  AdminHostedUiDomain:
+    Description: Dominio de inicio de sesión Cognito del panel administrativo.
+    Value: !Sub 'https://${AdminUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com'

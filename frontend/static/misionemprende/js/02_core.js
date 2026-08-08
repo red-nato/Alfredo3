@@ -33,6 +33,8 @@ Object.assign(app, {
             foundWords: [],
             wordLocations: {}
         },
+        completedStages: {},
+        phaseCompletionInFlight: null,
         personas: {
             adultos_mayores: [
                 {
@@ -110,7 +112,7 @@ Object.assign(app, {
     init: function() {
         const page = document.body.dataset.page || 'game';
         if (page === 'professor') { this.showView('view-professor-login'); this.initProfessorLogin(); return; }
-        if (page === 'admin') { this.showView('view-admin-login'); return; }
+        if (page === 'admin') { this.initAdminAuth(); return; }
         this.showView('view-welcome');
     },
 
@@ -170,6 +172,8 @@ Object.assign(app, {
         this.state.selectedPersona = null;
         this.state.evaluationDrafts = {};
         this.state.currentEvalTarget = null;
+        this.state.completedStages = {};
+        this.state.phaseCompletionInFlight = null;
 
         const tc = document.getElementById('token-count');
         const nd = document.getElementById('team-name-display');
@@ -260,6 +264,45 @@ Object.assign(app, {
         };
         update();
         this.state.timerInterval = setInterval(update, 1000);
+    },
+
+    finishCurrentPhase: async function(stage, { timedOut = false } = {}) {
+        if (!this.state.sessionCode || !this.state.teamName) return;
+        if (this.state.phaseCompletionInFlight === stage || this.state.currentStage !== stage) return;
+
+        this.state.phaseCompletionInFlight = stage;
+        clearInterval(this.state.timerInterval);
+        const timer = document.getElementById('global-timer');
+        if (timer) timer.classList.add('hidden');
+        if (timedOut && stage === 1) this.revealWordSearchSolutions();
+
+        const overlay = document.getElementById('phase-transition-overlay');
+        const message = document.getElementById('correct-words-display');
+        if (overlay) overlay.classList.remove('hidden');
+        if (message) message.textContent = timedOut
+            ? 'Tiempo terminado. Registrando el fin de fase…'
+            : 'Equipo listo. Esperando a los demás equipos…';
+
+        try {
+            const response = await apiFetch('/api/equipo/terminar-fase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo: this.state.sessionCode, nombre_equipo: this.state.teamName, fase: stage })
+            });
+            const result = await response.json();
+            if (!response.ok || result.status !== 'ok') throw new Error(result.error || 'No se pudo terminar la fase');
+            if (result.advanced && result.current_stage > this.state.currentStage) {
+                if (overlay) overlay.classList.add('hidden');
+                this.handleServerState({ status: 'ok', current_stage: result.current_stage, paused: false });
+            } else if (message) {
+                message.textContent = 'Esperando a que los demás equipos terminen…';
+            }
+        } catch (error) {
+            this.state.phaseCompletionInFlight = null;
+            if (overlay) overlay.classList.add('hidden');
+            this.showToast(error.message || 'No se pudo registrar el fin de fase. Reintentaremos.', 'error');
+            setTimeout(() => this.finishCurrentPhase(stage, { timedOut }), 3000);
+        }
     },
 
     addTokens: function(amount) {

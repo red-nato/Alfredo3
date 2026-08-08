@@ -33,18 +33,9 @@
                 <h2 class="text-4xl text-pink-500 font-bold font-8bit mt-4">ADMIN</h2>
                 <p class="text-gray-400 text-xs font-mono mt-2 tracking-widest">ACCESO ADMINISTRATIVO</p>
             </div>
-            <div class="space-y-4 text-left">
-                <div>
-                    <label class="text-xs font-bold text-pink-400 uppercase font-mono">Usuario</label>
-                    <input type="text" id="admin-user" class="w-full bg-black border-2 border-gray-700 text-pink-500 px-4 py-3 rounded-xl focus:border-pink-500 outline-none font-mono transition" placeholder="admin">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-pink-400 uppercase font-mono">Contraseña</label>
-                    <input type="password" id="admin-pass" class="w-full bg-black border-2 border-gray-700 text-pink-500 px-4 py-3 rounded-xl focus:border-pink-500 outline-none font-mono transition" placeholder="••••">
-                </div>
-            </div>
+            <p class="text-gray-300 text-sm leading-relaxed">Inicia sesión con una cuenta autorizada del grupo <span class="text-pink-400 font-bold">Admins</span>. Las credenciales ya no se guardan en el navegador.</p>
             <button onclick="app.adminLogin()" class="mt-8 w-full bg-pink-600 hover:bg-pink-500 text-white font-8bit py-4 rounded-xl shadow-[0_6px_0_#9d174d] active:shadow-[0_0_0_#9d174d] active:translate-y-2 transition-all">
-                INGRESAR
+                <i class="fas fa-shield-alt mr-2"></i> INICIAR SESIÓN SEGURA
             </button>
             <button onclick="app.goHome()" class="mt-6 text-gray-500 text-xs font-mono hover:text-white transition uppercase">Volver al inicio</button>
         </div>
@@ -63,7 +54,7 @@
                 <button onclick="app._switchAdminTab('teams')" id="tab-btn-teams" class="tab-btn bg-gray-800 border-2 border-pink-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition hover:bg-gray-700"><i class="fas fa-chart-line mr-2"></i>Métricas</button>
                 <button onclick="app._switchAdminTab('history')" id="tab-btn-history" class="tab-btn bg-gray-800 border-2 border-transparent text-gray-400 px-4 py-2 rounded-lg font-bold text-sm transition hover:bg-gray-700"><i class="fas fa-database mr-2"></i>Historial</button>
                 <button onclick="app._switchAdminTab('config')" id="tab-btn-config" class="tab-btn bg-gray-800 border-2 border-transparent text-gray-400 px-4 py-2 rounded-lg font-bold text-sm transition hover:bg-gray-700"><i class="fas fa-cogs mr-2"></i>Parámetros</button>
-                <button onclick="app.showView('view-welcome')" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold border-b-4 border-red-800 active:translate-y-1 active:border-b-0"><i class="fas fa-power-off"></i></button>
+                <button onclick="app.adminLogout()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold border-b-4 border-red-800 active:translate-y-1 active:border-b-0" title="Cerrar sesión"><i class="fas fa-power-off"></i></button>
             </div>
         </header>
 

@@ -39,7 +39,14 @@ function apiFetch(path, options) {
     const configuredBase = window.MISION_EMPRENDE_API_BASE_URL
         || localStorage.getItem('misionEmprendeApiBaseUrl')
         || '';
-    return window.fetch(`${configuredBase}${path}`, options);
+    const requestOptions = { ...(options || {}) };
+    const token = window.getMisionEmprendeAdminToken?.();
+    if (token) {
+        const headers = new Headers(requestOptions.headers || {});
+        if (!headers.has('Authorization')) headers.set('Authorization', token);
+        requestOptions.headers = headers;
+    }
+    return window.fetch(`${configuredBase}${path}`, requestOptions);
 }
 
 const PHASE_NARRATIVES = {

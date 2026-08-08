@@ -63,7 +63,31 @@ Tabla única `GameTable`:
 sam deploy --guided --region us-east-1
 ```
 
-Las Lambdas de negocio incluyen alias `live` y `Canary10Percent5Minutes`: cada versión nueva recibe 10% del tráfico durante cinco minutos antes de reemplazar la anterior. Para producción real, añade alarmas de `Errors` y `Duration` de CloudWatch a `DeploymentPreference` antes de usar datos reales.
+Las Lambdas de negocio, incluida `FinishPhase`, incluyen alias `live` y `Canary10Percent5Minutes`: cada versión nueva recibe 10% del tráfico durante cinco minutos antes de reemplazar la anterior. Para producción real, añade alarmas de `Errors` y `Duration` de CloudWatch a `DeploymentPreference` antes de usar datos reales.
+
+### Panel administrativo con Cognito
+
+El panel administrativo usa el Hosted UI de Cognito; ya no hay usuarios ni
+contraseñas en el JavaScript. El API Gateway protege las rutas administrativas
+y el backend exige además el grupo Cognito `Admins`.
+
+Al desplegar el backend, proporciona la URL definitiva del panel para que sea
+el callback permitido de Cognito:
+
+```bash
+sam deploy --parameter-overrides \
+  ExecutionRoleName=<tu-rol> \
+  FrontendCallbackUrl=http://<bucket>.s3-website-us-east-1.amazonaws.com/panel-admin/
+```
+
+Crea el primer usuario y asígnalo al grupo después de desplegar:
+
+```bash
+aws cognito-idp admin-create-user --user-pool-id <AdminUserPoolId> \
+  --username admin@ejemplo.cl --user-attributes Name=email,Value=admin@ejemplo.cl
+aws cognito-idp admin-add-user-to-group --user-pool-id <AdminUserPoolId> \
+  --username admin@ejemplo.cl --group-name Admins
+```
 
 **Si tu cuenta es un AWS Academy Learner Lab** (rol asumido `voclabs/...`): `iam:CreateRole` está bloqueado, así que SAM no puede crear un rol por Lambda ni el rol de CodeDeploy. El template ya reutiliza el rol `LabRole` provisionado por el lab (parámetro `ExecutionRoleName` en `template.yaml`, default `LabRole`). Si tu rol reutilizable tiene otro nombre: `sam deploy --parameter-overrides ExecutionRoleName=<tu-rol>`. Si un deploy anterior quedó en `ROLLBACK_COMPLETE`, hay que borrarlo antes de reintentar: `aws cloudformation delete-stack --stack-name <stack>`.
 
@@ -86,9 +110,26 @@ aws s3api put-bucket-policy --bucket "$BUCKET" --policy '{
 Cada vez que haya cambios en `frontend/` o un nuevo `ApiUrl` (por ejemplo tras recrear el stack en un Learner Lab), usa el script incluido — sube `index.html`, `profesor.html` y `panel-admin.html` como `profesor/index.html` y `panel-admin/index.html` (mismas rutas limpias que Django) e inyecta la URL de la API **solo en la copia subida**, sin tocar `00_env.js` del repo:
 
 ```bash
-BUCKET=<tu-bucket> API_URL=<ApiUrl de sam deploy> ./frontend/deploy-s3.sh
+BUCKET=<tu-bucket> API_URL=<ApiUrl de sam deploy> \
+COGNITO_USER_POOL_ID=<AdminUserPoolId> \
+COGNITO_CLIENT_ID=<AdminUserPoolClientId> \
+COGNITO_HOSTED_UI_DOMAIN=<AdminHostedUiDomain> \
+./frontend/deploy-s3.sh
 ```
 
 El sitio queda en `http://<bucket>.s3-website-<region>.amazonaws.com/`.
 
 Consulta [MIGRACION.md](MIGRACION.md) para las reglas y la correspondencia Django → Serverless, y [REPORTE_ARQUITECTURA.md](REPORTE_ARQUITECTURA.md) para los patrones de diseño y los bugs corregidos en esta migración (timer/sincronización, roles IAM en Learner Lab).
+
+## Resiliencia y FIS
+
+[`fis/finish-phase-experiments.yaml`](fis/finish-phase-experiments.yaml) contiene
+experimentos FIS explícitamente orientados a `FinishPhase`: latencia y errores
+transitorios. Consulta [`fis/README.md`](fis/README.md) antes de desplegarlos;
+las acciones FIS para Lambda requieren su extensión y bucket de configuración.
+
+## Verificación continua
+
+El workflow [`.github/workflows/verify.yml`](.github/workflows/verify.yml) se
+ejecuta en cada push y pull request: instala dependencias, corre tests, valida
+sintaxis JavaScript, SAM y la plantilla FIS.

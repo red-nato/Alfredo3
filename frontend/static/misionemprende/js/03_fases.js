@@ -50,35 +50,26 @@ Object.assign(app, {
         this.generateWordSearch();
         this.showView('view-stage1-game');
         const timerMin = PHASE_CONFIG[1] ? PHASE_CONFIG[1].timerMin : 3;
-        this.startTimer(timerMin);
+        this.startTimer(timerMin, () => this.finishCurrentPhase(1, { timedOut: true }));
     },
 
-    completeStage1: function() {
+    completeStage1: async function() {
+        if (this.state.completedStages?.[1]) return;
         clearInterval(this.state.timerInterval);
         const display = document.getElementById('global-timer');
         if (display) display.classList.add('hidden');
         const coins = PHASE_CONFIG[1] ? PHASE_CONFIG[1].coinsFirst : 5;
         this.addTokens(coins);
-
-        this.triggerTransition(
-            "¡Trabajo en equipo completado!",
-            "Se conocieron, comunicaron y colaboraron. Eso es la base de todo equipo emprendedor. Ahora viene lo más importante: entender a alguien que necesita su ayuda.",
-            10,
-            () => { this.showView('view-stage2-topics'); this.state.currentStage = 2; this.startTimer(8); },
-            1
-        );
+        this.state.completedStages = { ...(this.state.completedStages || {}), 1: true };
+        await this.finishCurrentPhase(1);
     },
 
     // ── SOPA DE LETRAS MEJORADA ──────────────────────────────────
-    // Corrección: detección de colisión estricta, sin solapamiento de letras.
-    // Solo permite compartir celda si la letra EXACTA coincide y la celda
-    // ya fue asignada a OTRA palabra diferente (intersección genuina).
-    // Para máxima seguridad se usa modo "sin intersección" por defecto.
+    // Cada palabra ocupa celdas exclusivas. Una intersección deja la celda
+    // bloqueada al encontrar la primera palabra y hacía imposible seleccionar
+    // la segunda, por eso aquí no se permiten solapamientos de ningún tipo.
     generateWordSearch: function() {
         const size  = this.state.wordSearch.size || 15;
-        // grid[idx] = letra colocada, owner[idx] = nombre de la palabra dueña
-        const grid    = new Array(size * size).fill('');
-        const owner   = new Array(size * size).fill(null);
         const words   = [...this.state.wordSearch.words].sort((a, b) => b.length - a.length);
         this.state.wordSearch.foundWords    = [];
         this.state.wordSearch.wordLocations = {};
@@ -89,77 +80,39 @@ Object.assign(app, {
             { dr: 1, dc: 0 },  // vertical
         ];
 
-        const tryPlace = (word) => {
-            const shuffledDirs = shuffleArray(DIRECTIONS);
-            // Intentamos muchas posiciones aleatorias
-            for (let attempt = 0; attempt < 1200; attempt++) {
-                const dir    = shuffledDirs[attempt % shuffledDirs.length];
-                const maxRow = dir.dr === 0 ? size     : size - word.length;
-                const maxCol = dir.dc === 0 ? size     : size - word.length;
-                if (maxRow <= 0 || maxCol <= 0) continue;
-
-                const row = Math.floor(Math.random() * maxRow);
-                const col = Math.floor(Math.random() * maxCol);
-
-                let canPlace = true;
-                const indices = [];
-
-                for (let i = 0; i < word.length; i++) {
-                    const r   = row + dir.dr * i;
-                    const c   = col + dir.dc * i;
-                    const idx = r * size + c;
-                    const existing = grid[idx];
-
-                    if (existing === '') {
-                        // Celda libre: OK
-                        indices.push({ idx, letter: word[i], shared: false });
-                    } else if (existing === word[i] && owner[idx] !== null && owner[idx] !== word) {
-                        // MISMO carácter de otra palabra: intersección válida
-                        // Solo permitimos 1 intersección por palabra para simplicidad
-                        const alreadyShared = indices.some(x => x.shared);
-                        if (!alreadyShared) {
-                            indices.push({ idx, letter: word[i], shared: true });
-                        } else {
-                            // Más de una intersección: rechazamos para evitar ambigüedad
-                            canPlace = false;
-                            break;
-                        }
-                    } else {
-                        // Conflicto de letras distintas o misma palabra → no se puede
-                        canPlace = false;
-                        break;
-                    }
-                }
-
-                if (canPlace && indices.length === word.length) {
-                    const wordIndices = [];
-                    indices.forEach(({ idx, letter, shared }) => {
-                        if (!shared) {
-                            grid[idx]  = letter;
-                            owner[idx] = word;
-                        }
-                        wordIndices.push(idx);
-                    });
-                    this.state.wordSearch.wordLocations[word] = wordIndices;
+        let grid = [];
+        let locations = {};
+        // Reiniciar la grilla completa evita una sopa parcialmente generada. Con
+        // 15×15 y estas diez palabras, una pasada sin solapamientos entra holgadamente.
+        for (let boardAttempt = 0; boardAttempt < 50; boardAttempt += 1) {
+            const candidateGrid = new Array(size * size).fill('');
+            const candidateLocations = {};
+            const tryPlace = (word) => {
+                for (let attempt = 0; attempt < 600; attempt += 1) {
+                    const dir = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+                    const maxRow = size - (dir.dr * (word.length - 1));
+                    const maxCol = size - (dir.dc * (word.length - 1));
+                    const row = Math.floor(Math.random() * maxRow);
+                    const col = Math.floor(Math.random() * maxCol);
+                    const indices = Array.from({ length: word.length }, (_, i) =>
+                        (row + dir.dr * i) * size + col + dir.dc * i
+                    );
+                    if (indices.some((idx) => candidateGrid[idx] !== '')) continue;
+                    indices.forEach((idx, i) => { candidateGrid[idx] = word[i]; });
+                    candidateLocations[word] = indices;
                     return true;
                 }
+                return false;
+            };
+            if (shuffleArray(words).every(tryPlace)) {
+                grid = candidateGrid;
+                locations = candidateLocations;
+                break;
             }
-            return false;
-        };
+        }
 
-        // Primera pasada
-        const notPlaced = [];
-        words.forEach(word => {
-            if (!tryPlace(word)) notPlaced.push(word);
-        });
-
-        // Segunda pasada para palabras que no entraron
-        notPlaced.forEach(word => {
-            if (!tryPlace(word)) {
-                console.warn(`No se pudo colocar la palabra: "${word}". Se omite.`);
-                delete this.state.wordSearch.wordLocations[word];
-            }
-        });
+        if (!grid.length) throw new Error('No se pudo generar una sopa de letras sin colisiones');
+        this.state.wordSearch.wordLocations = locations;
 
         // Relleno con letras que no son iniciales de palabras, para reducir falsos positivos
         const FILL = "BCDFGHJKNPQRSTVWXYZ";
@@ -259,6 +212,13 @@ Object.assign(app, {
             this.playSound('fanfare');
             this.showToast("¡Encontraron todas las palabras! ¡Excelente trabajo en equipo! 🎉", "success");
         }
+    },
+
+    revealWordSearchSolutions: function() {
+        Object.values(this.state.wordSearch.wordLocations).flat().forEach((idx) => {
+            const cell = document.querySelector(`.letter-cell[data-index='${idx}']`);
+            if (cell) cell.classList.add('correct-word');
+        });
     },
 
     triggerTransition: function(title, message, seconds, onCompleteCallback, phaseNumber) {
@@ -531,7 +491,7 @@ Object.assign(app, {
 
         this.showView('view-stage2-challenge-detail');
         const timerMin = PHASE_CONFIG[2] ? PHASE_CONFIG[2].timerMin : 8;
-        this.startTimer(timerMin);
+        this.startTimer(timerMin, () => this.finishCurrentPhase(2, { timedOut: true }));
     },
 
     completeStage2: function() {
@@ -571,7 +531,7 @@ Object.assign(app, {
             }
         }
         const timerMin = PHASE_CONFIG[3] ? PHASE_CONFIG[3].timerMin : 10;
-        this.startTimer(timerMin);
+        this.startTimer(timerMin, () => this.finishCurrentPhase(3, { timedOut: true }));
     },
 
     newPrompt: function() {

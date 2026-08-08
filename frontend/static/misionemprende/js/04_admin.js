@@ -6,30 +6,70 @@ Object.assign(app, {
     // -------------------------------------------------------------
     // 1. LOGIN Y NAVEGACIÓN ADMIN
     // -------------------------------------------------------------
+    initAdminAuth: function() {
+        const params = new URLSearchParams(window.location.hash.slice(1));
+        const idToken = params.get('id_token');
+        if (idToken) {
+            const expiresIn = Number(params.get('expires_in') || 3600);
+            sessionStorage.setItem('misionEmprendeAdminSession', JSON.stringify({
+                idToken,
+                expiresAt: Date.now() + (expiresIn * 1000),
+            }));
+            history.replaceState(null, document.title, window.location.pathname + window.location.search);
+        }
+        if (this.getAdminToken()) this.openAdminDashboard();
+        else this.showView('view-admin-login');
+    },
+
+    getAdminToken: function() {
+        try {
+            const session = JSON.parse(sessionStorage.getItem('misionEmprendeAdminSession') || '{}');
+            return session.idToken && Number(session.expiresAt) > Date.now() ? session.idToken : null;
+        } catch (_) {
+            return null;
+        }
+    },
+
     adminLogin: function() {
-    const user = document.getElementById('admin-user').value;
-    const pass = document.getElementById('admin-pass').value;
-    
-    if ((user === 'admin' && pass === 'helpi') || (user === 'shlam' && pass === '1234')) { 
+        if (this.getAdminToken()) {
+            this.openAdminDashboard();
+            return;
+        }
+        const config = window.MISION_EMPRENDE_COGNITO || {};
+        if (!config.clientId || !config.hostedUiDomain) {
+            this.showToast('Falta configurar Cognito en el despliegue del frontend.', 'error');
+            return;
+        }
+        const redirectUri = `${window.location.origin}/panel-admin/`;
+        const query = new URLSearchParams({
+            client_id: config.clientId,
+            response_type: 'token',
+            scope: 'openid profile email',
+            redirect_uri: redirectUri,
+        });
+        window.location.assign(`${config.hostedUiDomain}/login?${query.toString()}`);
+    },
+
+    openAdminDashboard: function() {
         this.playSound('success');
         this.showView('view-admin-dashboard');
-        // -----------------------------------------------------------------
-        
         setTimeout(() => {
             this.loadAdminData();
             this._renderAdminConfigPanel();
             this._switchAdminTab('teams');
         }, 100);
-    } else {
-        this.playSound('error');
-        this.showToast('Acceso denegado.', 'error');
-        const passEl = document.getElementById('admin-pass');
-        if (passEl) { 
-            passEl.classList.add('border-red-500','animate-shake'); 
-            setTimeout(() => passEl.classList.remove('border-red-500','animate-shake'), 500); 
+    },
+
+    adminLogout: function() {
+        sessionStorage.removeItem('misionEmprendeAdminSession');
+        const config = window.MISION_EMPRENDE_COGNITO || {};
+        if (config.clientId && config.hostedUiDomain) {
+            const query = new URLSearchParams({ client_id: config.clientId, logout_uri: `${window.location.origin}/panel-admin/` });
+            window.location.assign(`${config.hostedUiDomain}/logout?${query.toString()}`);
+        } else {
+            this.showView('view-admin-login');
         }
-    }
-},
+    },
 
     _switchAdminTab: function(tab) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -812,8 +852,11 @@ Object.assign(app, {
 
         if (serverData.current_stage > this.state.currentStage) {
             this.state.currentStage = serverData.current_stage;
+            this.state.phaseCompletionInFlight = null;
             const section = document.getElementById('view-transition');
             if (section) section.classList.add('hidden');
+            const timeoutOverlay = document.getElementById('phase-transition-overlay');
+            if (timeoutOverlay) timeoutOverlay.classList.add('hidden');
             
             if (this.state.currentStage === 1) this.playLobbyIntro('view-stage1-intro'); 
             else if (this.state.currentStage === 2) this.showView('view-stage2-topics');
@@ -903,3 +946,5 @@ Object.assign(app, {
         }, 3000);
     }
 });
+
+window.getMisionEmprendeAdminToken = () => app.getAdminToken?.() || null;

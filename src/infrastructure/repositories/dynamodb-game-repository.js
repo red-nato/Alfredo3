@@ -10,7 +10,7 @@ import { normalise } from '../../domain/entities/session.js';
 const key = (code) => `SESSION#${code}`;
 const metaKey = (code) => ({ PK: key(code), SK: 'META' });
 const teamKey = (code, name) => ({ PK: key(code), SK: `TEAM#${encodeURIComponent(normalise(name))}` });
-const toTeam = (item) => item && ({ id: item.id, nombre: item.nombre, puntaje_total: item.puntajeTotal ?? 0, integrantes: item.integrantes ?? [], miembros: item.integrantes ?? [], termino_fase_actual: !!item.terminoFaseActual, ya_presento_pitch: !!item.yaPresentoPitch });
+const toTeam = (item) => item && ({ id: item.id, nombre: item.nombre, puntaje_total: item.puntajeTotal ?? 0, integrantes: item.integrantes ?? [], miembros: item.integrantes ?? [], termino_fase_actual: !!item.terminoFaseActual, fase_terminada: item.faseTerminada ?? null, ya_presento_pitch: !!item.yaPresentoPitch });
 
 export class DynamoGameRepository extends GameRepository {
   constructor({ client = documentClient, tableName = process.env.GAME_TABLE_NAME } = {}) {
@@ -66,6 +66,26 @@ export class DynamoGameRepository extends GameRepository {
   async updateSession(codigo, attributes) {
     const names = {}; const values = {}; const sets = Object.entries(attributes).map(([property, value], index) => { const n = `#n${index}`; const v = `:v${index}`; names[n] = property; values[v] = value; return `${n} = ${v}`; });
     await this.client.send(new UpdateCommand({ TableName: this.tableName, Key: metaKey(codigo), UpdateExpression: `SET ${sets.join(', ')}`, ExpressionAttributeNames: names, ExpressionAttributeValues: values, ConditionExpression: 'attribute_exists(PK)' }));
+  }
+  async advanceSessionIfCurrentStage(codigo, expectedStage, attributes) {
+    const names = { '#phase': 'faseActual' }; const values = { ':expected': expectedStage };
+    const sets = Object.entries(attributes).map(([property, value], index) => {
+      const n = `#n${index}`; const v = `:v${index}`; names[n] = property; values[v] = value; return `${n} = ${v}`;
+    });
+    try {
+      await this.client.send(new UpdateCommand({
+        TableName: this.tableName,
+        Key: metaKey(codigo),
+        UpdateExpression: `SET ${sets.join(', ')}`,
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+        ConditionExpression: 'attribute_exists(PK) AND #phase = :expected',
+      }));
+      return true;
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') return false;
+      throw error;
+    }
   }
   async updateTeam(codigo, nombre, attributes) {
     const names = {}; const values = {}; const sets = Object.entries(attributes).map(([property, value], index) => { const n = `#n${index}`; const v = `:v${index}`; names[n] = property; values[v] = value; return `${n} = ${v}`; });

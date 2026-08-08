@@ -8,6 +8,17 @@
     // Pega aquí el valor de "ApiUrl" que imprime `sam deploy --guided`
     // antes de subir esta carpeta a S3/CloudFront.
     const PROD_API_BASE_URL = '';
+    // Estos valores se inyectan en la copia subida a S3. No son secretos: el
+    // control real está en el User Pool, API Gateway y el grupo Cognito Admins.
+    const COGNITO_USER_POOL_ID = '';
+    const COGNITO_CLIENT_ID = '';
+    const COGNITO_HOSTED_UI_DOMAIN = '';
+
+    window.MISION_EMPRENDE_COGNITO = {
+        userPoolId: COGNITO_USER_POOL_ID,
+        clientId: COGNITO_CLIENT_ID,
+        hostedUiDomain: COGNITO_HOSTED_UI_DOMAIN,
+    };
 
     if (window.MISION_EMPRENDE_API_BASE_URL) return;
 
