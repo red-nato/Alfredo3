@@ -1,0 +1,37 @@
+name: Deployment Pipeline Completo
+
+on:
+  push:
+    branches:
+      - main 
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar credenciales de AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }} 
+          aws-region: us-east-1 
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Construir Backend con SAM
+        run: sam build
+
+      - name: Desplegar Backend con SAM
+        run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --stack-name mision-emprende-backend --resolve-s3 --parameter-overrides ExecutionRoleName=LabRole
+
+      - name: Desplegar Frontend a S3
+        run: |
+          aws s3 sync ./frontend s3://${{ vars.S3_BUCKET_NAME }} --delete
