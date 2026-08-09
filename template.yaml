@@ -17,7 +17,7 @@ Globals:
   Api:
     Cors:
       AllowMethods: "'GET,POST,OPTIONS'"
-      AllowHeaders: "'Content-Type'"
+      AllowHeaders: "'Content-Type,Authorization'"
       AllowOrigin: "'*'"
   Function:
     Runtime: nodejs22.x
@@ -57,6 +57,7 @@ Resources:
             - {AttributeName: GSI2SK, KeyType: RANGE}
           Projection: {ProjectionType: ALL}
       SSESpecification: {SSEEnabled: true}
+      TimeToLiveSpecification: {AttributeName: ttl, Enabled: true}
 
   HealthFunction:
     Type: AWS::Serverless::Function
@@ -152,6 +153,18 @@ Resources:
       <<: *GameFunction
       Handler: functions/admin-stats/handler.handler
       Events: {Api: {Type: Api, Properties: {Path: /api/admin-stats, Method: get}}}
+  AdminLoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      <<: *GameFunction
+      Handler: functions/admin-login/handler.handler
+      Events: {Api: {Type: Api, Properties: {Path: /api/admin/login, Method: post}}}
+  AdminLogoutFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      <<: *GameFunction
+      Handler: functions/admin-logout/handler.handler
+      Events: {Api: {Type: Api, Properties: {Path: /api/admin/logout, Method: post}}}
 
 Outputs:
   ApiUrl:
