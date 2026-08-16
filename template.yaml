@@ -221,19 +221,7 @@ Resources:
     Properties:
       <<: *GameFunction
       Handler: functions/admin-stats/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/admin-stats, Method: get}}}
-  AdminLoginFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      <<: *GameFunction
-      Handler: functions/admin-login/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/admin/login, Method: post}}}
-  AdminLogoutFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      <<: *GameFunction
-      Handler: functions/admin-logout/handler.handler
-      Events: {Api: {Type: Api, Properties: {Path: /api/admin/logout, Method: post}}}
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/admin-stats, Method: get, Auth: {Authorizer: AdminCognitoAuthorizer}}}}
 
 Outputs:
   ApiUrl:
