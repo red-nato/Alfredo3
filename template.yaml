@@ -120,6 +120,7 @@ Resources:
             - {AttributeName: GSI2SK, KeyType: RANGE}
           Projection: {ProjectionType: ALL}
       SSESpecification: {SSEEnabled: true}
+      TimeToLiveSpecification: {AttributeName: ttl, Enabled: true}
 
   HealthFunction:
     Type: AWS::Serverless::Function
@@ -220,7 +221,19 @@ Resources:
     Properties:
       <<: *GameFunction
       Handler: functions/admin-stats/handler.handler
-      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/admin-stats, Method: get, Auth: {Authorizer: AdminCognitoAuthorizer}}}}
+      Events: {Api: {Type: Api, Properties: {Path: /api/admin-stats, Method: get}}}
+  AdminLoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      <<: *GameFunction
+      Handler: functions/admin-login/handler.handler
+      Events: {Api: {Type: Api, Properties: {Path: /api/admin/login, Method: post}}}
+  AdminLogoutFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      <<: *GameFunction
+      Handler: functions/admin-logout/handler.handler
+      Events: {Api: {Type: Api, Properties: {Path: /api/admin/logout, Method: post}}}
 
 Outputs:
   ApiUrl:

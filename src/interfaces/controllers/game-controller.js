@@ -1,30 +1,16 @@
 import { DomainError } from '../../domain/errors.js';
 import { sessionCode } from '../../domain/entities/session.js';
+import { bearerToken } from './auth-controller.js';
 
-const response = (statusCode, body, dataRegion) => ({ statusCode, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'X-Mision-Data-Region', ...(dataRegion ? { 'X-Mision-Data-Region': dataRegion } : {}) }, body: JSON.stringify(body) });
-const parseBody = (event) => {
-  if (!event.body) return {};
-  try {
-    const body = event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf8') : event.body;
-    return JSON.parse(body);
-  } catch {
-    throw new DomainError('JSON inválido');
-  }
-};
-const adminOperations = new Set(['start', 'pause', 'next', 'adminStats']);
-const isAdmin = (event) => {
-  const claim = event.requestContext?.authorizer?.claims?.['cognito:groups'];
-  let groups = Array.isArray(claim) ? claim : String(claim ?? '').split(',');
-  if (typeof claim === 'string' && claim.trim().startsWith('[')) {
-    try { const parsed = JSON.parse(claim); if (Array.isArray(parsed)) groups = parsed; } catch { /* usa el fallback separado por comas */ }
-  }
-  return groups.map((group) => String(group).trim().replace(/^[\["']+|[\]"']+$/g, '')).includes('Admins');
-};
+const response = (statusCode, body) => ({ statusCode, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(body) });
+const parseBody = (event) => { if (!event.body) return {}; try { return JSON.parse(event.body); } catch { throw new DomainError('JSON inválido'); } };
+const ADMIN_OPERATIONS = new Set(['start', 'pause', 'next', 'adminStats']);
 
 export class GameController {
-  constructor(useCases) { this.useCases = useCases; }
+  constructor(useCases, authUseCases) { this.useCases = useCases; this.authUseCases = authUseCases; }
   async handle(operation, event) {
     try {
+      if (ADMIN_OPERATIONS.has(operation)) await this.authUseCases.verify(bearerToken(event));
       const query = event.queryStringParameters ?? {}; const body = ['getTeams', 'validateSession', 'gameState', 'start', 'pause', 'next', 'adminStats'].includes(operation) ? query : parseBody(event);
       if (adminOperations.has(operation) && !isAdmin(event)) throw new DomainError('Se requiere un usuario del grupo Admins', 403);
       let result;

@@ -2,7 +2,8 @@
 set -eu
 
 TABLE_NAME="${GAME_TABLE_NAME:-MisionEmprende-local}"
-AWS_LOCAL="aws dynamodb --endpoint-url http://localhost:8000 --region us-east-1 --no-cli-pager"
+DYNAMODB_LOCAL_PORT="${DYNAMODB_LOCAL_PORT:-8001}"
+AWS_LOCAL="aws dynamodb --endpoint-url http://localhost:${DYNAMODB_LOCAL_PORT} --region us-east-1 --no-cli-pager"
 export AWS_ACCESS_KEY_ID=local
 export AWS_SECRET_ACCESS_KEY=local
 export AWS_EC2_METADATA_DISABLED=true

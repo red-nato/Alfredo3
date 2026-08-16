@@ -6,183 +6,43 @@ Object.assign(app, {
     // -------------------------------------------------------------
     // 1. LOGIN Y NAVEGACIÓN ADMIN
     // -------------------------------------------------------------
-    _adminRedirectUri: function() {
-        return this.frontendUrl('panel-admin/index.html');
-    },
-
-    initAdminAuth: async function() {
-        const params = new URLSearchParams(window.location.search);
-        try {
-            if (params.get('error')) throw new Error(params.get('error_description') || params.get('error'));
-            if (params.get('code')) await this._exchangeAdminCode(params.get('code'), params.get('state'));
-            if (this.getAdminToken()) this.openAdminDashboard();
-            else this.showView('view-admin-login');
-        } catch (error) {
-            this._clearAdminSession();
-            this.showView('view-admin-login');
-            this.showToast(error.message || 'No se pudo validar la sesión administrativa.', 'error');
-        } finally {
-            if (params.get('code') || params.get('error')) history.replaceState(null, document.title, window.location.pathname);
-        }
-    },
-
-    _decodeJwtPayload: function(token) {
-        const encoded = String(token || '').split('.')[1];
-        if (!encoded) throw new Error('Cognito devolvió un token inválido.');
-        const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(encoded.length / 4) * 4, '=');
-        return JSON.parse(decodeURIComponent(Array.from(atob(normalized), c => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`).join('')));
-    },
-
-    _validateAdminToken: function(idToken) {
-        const config = window.MISION_EMPRENDE_COGNITO || {};
-        const claims = this._decodeJwtPayload(idToken);
-        const groups = Array.isArray(claims['cognito:groups']) ? claims['cognito:groups'] : [];
-        if (claims.token_use !== 'id' || claims.aud !== config.clientId || claims.iss !== config.issuer || Number(claims.exp) * 1000 <= Date.now()) {
-            throw new Error('El token administrativo no corresponde a este despliegue o ya expiró.');
-        }
-        if (!groups.includes('Admins')) throw new Error('La cuenta no pertenece al grupo Cognito Admins.');
-        return claims;
-    },
-
-    _clearAdminSession: function() {
-        sessionStorage.removeItem('misionEmprendeAdminSession');
-        sessionStorage.removeItem('misionEmprendeAdminPkce');
-    },
-
-    _exchangeAdminCode: async function(code, returnedState) {
-        const config = window.MISION_EMPRENDE_COGNITO || {};
-        const pkce = JSON.parse(sessionStorage.getItem('misionEmprendeAdminPkce') || '{}');
-        if (!pkce.verifier || !pkce.state || returnedState !== pkce.state) throw new Error('La respuesta de autenticación no superó la validación CSRF/PKCE.');
-        const redirectUri = this._adminRedirectUri();
-        const body = new URLSearchParams({ grant_type: 'authorization_code', client_id: config.clientId, code, redirect_uri: redirectUri, code_verifier: pkce.verifier });
-        const response = await fetch(`${config.hostedUiDomain}/oauth2/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
-        const tokens = await response.json();
-        if (!response.ok || !tokens.id_token) throw new Error(tokens.error_description || 'Cognito rechazó el código de autorización.');
-        const claims = this._validateAdminToken(tokens.id_token);
-        sessionStorage.setItem('misionEmprendeAdminSession', JSON.stringify({ idToken: tokens.id_token, expiresAt: Number(claims.exp) * 1000 }));
-        sessionStorage.removeItem('misionEmprendeAdminPkce');
-    },
-
-    getAdminToken: function() {
-        try {
-            const session = JSON.parse(sessionStorage.getItem('misionEmprendeAdminSession') || '{}');
-            if (!session.idToken || Number(session.expiresAt) <= Date.now()) return null;
-            this._validateAdminToken(session.idToken);
-            return session.idToken;
-        } catch (_) {
-            this._clearAdminSession();
-            return null;
-        }
-    },
-
     adminLogin: async function() {
-        if (this.getAdminToken()) {
-            this.openAdminDashboard();
-            return;
-        }
-        const config = window.MISION_EMPRENDE_COGNITO || {};
-        if (!config.clientId || !config.hostedUiDomain || !config.issuer) {
-            this.showToast('Falta configurar Cognito en el despliegue del frontend.', 'error');
-            return;
-        }
-        const redirectUri = this._adminRedirectUri();
-        const random = new Uint8Array(32); crypto.getRandomValues(random);
-        const verifier = Array.from(random, value => value.toString(16).padStart(2, '0')).join('');
-        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-        const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        const stateBytes = new Uint8Array(24); crypto.getRandomValues(stateBytes);
-        const state = Array.from(stateBytes, value => value.toString(16).padStart(2, '0')).join('');
-        sessionStorage.setItem('misionEmprendeAdminPkce', JSON.stringify({ verifier, state }));
-        const query = new URLSearchParams({
-            client_id: config.clientId,
-            response_type: 'code',
-            scope: 'openid profile email',
-            redirect_uri: redirectUri,
-            state,
-            code_challenge: challenge,
-            code_challenge_method: 'S256',
+    const user = document.getElementById('admin-user').value.trim();
+    const pass = document.getElementById('admin-pass').value;
+
+    try {
+        const response = await apiFetch('/api/admin/login/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, password: pass }),
         });
-        window.location.assign(`${config.hostedUiDomain}/oauth2/authorize?${query.toString()}`);
-    },
+        const data = await response.json();
+        if (!response.ok || data.status !== 'ok') throw new Error(data.error || 'Acceso denegado.');
 
-    adminPasswordLogin: async function(event) {
-        event?.preventDefault();
-        const usernameInput = document.getElementById('admin-login-username');
-        const passwordInput = document.getElementById('admin-login-password');
-        const button = document.getElementById('admin-login-submit');
-        const config = window.MISION_EMPRENDE_COGNITO || {};
-        const enteredUsername = String(usernameInput?.value || '').trim().toLowerCase();
-        const cognitoUsername = enteredUsername;
-        if (button) button.disabled = true;
-        try {
-            const region = String(config.issuer || '').match(/cognito-idp\.([^.]+)\.amazonaws\.com/)?.[1] || 'us-east-1';
-            const callCognito = (target, body) => fetch(`https://cognito-idp.${region}.amazonaws.com/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': `AWSCognitoIdentityProviderService.${target}` },
-                body: JSON.stringify(body),
-            });
-            const startResponse = await callCognito('InitiateAuth', { AuthFlow: 'CUSTOM_AUTH', ClientId: config.clientId, AuthParameters: { USERNAME: cognitoUsername } });
-            const start = await startResponse.json();
-            if (!startResponse.ok || start.ChallengeName !== 'CUSTOM_CHALLENGE') throw new Error(start.message || start.__type || 'Cognito no inició el desafío');
-            const response = await callCognito('RespondToAuthChallenge', {
-                ClientId: config.clientId,
-                ChallengeName: 'CUSTOM_CHALLENGE',
-                Session: start.Session,
-                ChallengeResponses: { USERNAME: cognitoUsername, ANSWER: passwordInput?.value || '' },
-            });
-            const data = await response.json();
-            const idToken = data.AuthenticationResult?.IdToken;
-            if (!response.ok || !idToken) throw new Error(data.message || data.__type || 'Cognito rechazó las credenciales');
-            const claims = this._validateAdminToken(idToken);
-            sessionStorage.setItem('misionEmprendeAdminSession', JSON.stringify({ idToken, expiresAt: Number(claims.exp) * 1000 }));
-            if (passwordInput) passwordInput.value = '';
-            this.openAdminDashboard();
-        } catch (error) {
-            this.showToast(error.message || 'No se pudo iniciar sesión', 'error');
-        } finally {
-            if (button) button.disabled = false;
-        }
-    },
-
-    openAdminDashboard: function() {
+        sessionStorage.setItem('misionEmprendeAdminToken', data.token);
         this.playSound('success');
         this.showView('view-admin-dashboard');
+
         setTimeout(() => {
             this.loadAdminData();
             this._renderAdminConfigPanel();
             this._switchAdminTab('teams');
         }, 100);
+    } catch (error) {
+        this.playSound('error');
+        this.showToast(error.message || 'Acceso denegado.', 'error');
+        const passEl = document.getElementById('admin-pass');
+        if (passEl) {
+            passEl.classList.add('border-red-500','animate-shake');
+            setTimeout(() => passEl.classList.remove('border-red-500','animate-shake'), 500);
+        }
     },
 
     adminLogout: function() {
-        this._clearAdminSession();
-        this.showView('view-admin-login');
-    },
-
-    adminCreateUser: async function(event) {
-        event?.preventDefault();
-        const email = document.getElementById('new-admin-email')?.value.trim();
-        const passwordInput = document.getElementById('new-admin-password');
-        const password = passwordInput?.value || '';
-        const button = document.getElementById('new-admin-submit');
-        if (button) button.disabled = true;
-        try {
-            const response = await apiFetch('/api/admin/users', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Cognito rechazó la cuenta');
-            if (passwordInput) passwordInput.value = '';
-            const emailInput = document.getElementById('new-admin-email');
-            if (emailInput) emailInput.value = '';
-            this.showToast(`Administrador ${data.usuario.email} creado`, 'success');
-        } catch (error) {
-            this.showToast(error.message || 'No se pudo crear el administrador', 'error');
-        } finally {
-            if (button) button.disabled = false;
-        }
-    },
+    apiFetch('/api/admin/logout/', { method: 'POST' }).catch(() => {});
+    sessionStorage.removeItem('misionEmprendeAdminToken');
+    this.goHome();
+},
 
     _switchAdminTab: function(tab) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
