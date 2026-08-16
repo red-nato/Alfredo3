@@ -6,9 +6,16 @@ Backend Node.js independiente del Django legado. La dependencia siempre apunta h
 API Gateway → Lambda handler → controller → use case → repository port → DynamoDB
 ```
 
-Cada endpoint es una Lambda SAM distinta, aunque comparten el dominio y los adaptadores. Se conserva el prefijo histórico `/api`, heredado del Django legado (ver [MIGRACION.md](MIGRACION.md)).
+Cada endpoint es una Lambda distinta, aunque comparten el dominio y los adaptadores. Terraform es la fuente de verdad del despliegue; `template.yaml` queda únicamente para `sam local`. Se conserva el prefijo histórico `/api`, heredado del Django legado (ver [MIGRACION.md](MIGRACION.md)).
 
 El frontend ya no vive en el proyecto Django: está migrado y adaptado dentro de [`frontend/`](frontend/) (HTML estático + el mismo JS de siempre, sin build step). El detalle de qué se adaptó y qué patrones de Clean Architecture ya trae el backend está en [REPORTE_ARQUITECTURA.md](REPORTE_ARQUITECTURA.md) — no se repite aquí para no duplicar contenido.
+
+`dev` no es otro frontend ni otro backend. Es el **ambiente de desarrollo** y forma parte del nombre de los recursos (`mision-emprende-dev-*`) para distinguirlos de futuros ambientes `test` o `prod`:
+
+- **Frontend:** las páginas HTML, CSS, imágenes y JavaScript de `frontend/`. En AWS se guardan en S3 y se entregan por API Gateway/Lambda.
+- **Backend:** API Gateway y las Lambdas Node.js de `src/`; reciben las operaciones del juego y usan DynamoDB, Cognito y S3.
+- **Analytics:** los eventos que el backend copia a S3, el catálogo Glue y las consultas Athena.
+- **`dev`:** etiqueta del mismo despliegue, no una página a la que debas entrar.
 
 ## Desarrollo local
 
@@ -52,84 +59,46 @@ Tabla única `GameTable`:
 | Equipo | `SESSION#<codigo>` | `TEAM#<nombre-normalizado>` | Un `Query` recupera los equipos de la sesión; la llave impide duplicar nombres. |
 | Bloqueo de integrante | `SESSION#<codigo>` | `MEMBER#<nombre-normalizado>` | Transacción que evita que una persona entre a dos equipos. |
 | Token | `SESSION#<codigo>` | `TOKEN#<fecha>#<uuid>` | Auditoría inmutable y puntaje agregado atómicamente. |
+| Evento KPI | `SESSION#<codigo>` | `ANALYTICS#<uuid>` | Interacción idempotente para métricas operacionales. |
 
-`GSI1` busca un equipo por `equipo_id`; `GSI2` lista sesiones para el panel administrativo. No se replica el modelo SQL ni se usan joins.
+`GSI1` busca un equipo por `equipo_id`; `GSI2` lista sesiones para el panel administrativo. Terraform activa streams, PITR y una réplica global configurable (`us-west-2` en el AWS Lab actual). No se replica el modelo SQL ni se usan joins.
 
-## Despliegue
+## Despliegue con Terraform y Ansible
 
-### Backend
-
-```bash
-sam deploy --guided --region us-east-1
-```
-
-Las Lambdas de negocio, incluida `FinishPhase`, incluyen alias `live` y `Canary10Percent5Minutes`: cada versión nueva recibe 10% del tráfico durante cinco minutos antes de reemplazar la anterior. Para producción real, añade alarmas de `Errors` y `Duration` de CloudWatch a `DeploymentPreference` antes de usar datos reales.
-
-### Panel administrativo con Cognito
-
-El panel administrativo usa el Hosted UI de Cognito; ya no hay usuarios ni
-contraseñas en el JavaScript. El API Gateway protege las rutas administrativas
-y el backend exige además el grupo Cognito `Admins`.
-
-Al desplegar el backend, proporciona la URL definitiva del panel para que sea
-el callback permitido de Cognito:
+Terraform declara API Gateway, Lambdas, Cognito, la tabla global DynamoDB,
+CloudFront/S3, el data lake de interacción (S3 + Glue + Athena) y las plantillas
+FIS. Ansible orquesta dependencias Node, plan/apply, publicación del frontend,
+invalidación de CloudFront y alta opcional del primer admin.
 
 ```bash
-sam deploy --parameter-overrides \
-  ExecutionRoleName=<tu-rol> \
-  FrontendCallbackUrl=http://<bucket>.s3-website-us-east-1.amazonaws.com/panel-admin/
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+# revisa región réplica, protección de borrado y rol existente
+ansible-playbook ansible/deploy.yml
 ```
 
-Crea el primer usuario y asígnalo al grupo después de desplegar:
+Para crear el primer administrador en la misma ejecución, prepara `.env.admin`
+y ejecuta `ansible-playbook ansible/deploy.yml -e create_admin=true`. El login usa
+Authorization Code + PKCE, valida `issuer`, `audience`, expiración y grupo
+`Admins`; API Gateway vuelve a verificar la firma y el backend exige el grupo.
 
-```bash
-aws cognito-idp admin-create-user --user-pool-id <AdminUserPoolId> \
-  --username admin@ejemplo.cl --user-attributes Name=email,Value=admin@ejemplo.cl
-aws cognito-idp admin-add-user-to-group --user-pool-id <AdminUserPoolId> \
-  --username admin@ejemplo.cl --group-name Admins
-```
+En AWS Academy se reutiliza `LabRole` porque el laboratorio normalmente bloquea
+la creación de roles. En una cuenta normal conviene entregar un rol existente de
+mínimo privilegio mediante `execution_role_name`.
 
-**Si tu cuenta es un AWS Academy Learner Lab** (rol asumido `voclabs/...`): `iam:CreateRole` está bloqueado, así que SAM no puede crear un rol por Lambda ni el rol de CodeDeploy. El template ya reutiliza el rol `LabRole` provisionado por el lab (parámetro `ExecutionRoleName` en `template.yaml`, default `LabRole`). Si tu rol reutilizable tiene otro nombre: `sam deploy --parameter-overrides ExecutionRoleName=<tu-rol>`. Si un deploy anterior quedó en `ROLLBACK_COMPLETE`, hay que borrarlo antes de reintentar: `aws cloudformation delete-stack --stack-name <stack>`.
-
-### Frontend
-
-Bucket S3 con hosting estático (sin CloudFront; no hace falta rol IAM nuevo, funciona en Learner Lab). Se crea una vez:
-
-```bash
-BUCKET=<tu-bucket>   # nombre único global, ej: mision-emprende-frontend-<account-id>
-aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
-aws s3api put-bucket-website --bucket "$BUCKET" --website-configuration '{"IndexDocument":{"Suffix":"index.html"}}'
-aws s3api put-public-access-block --bucket "$BUCKET" --public-access-block-configuration \
-  BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false
-aws s3api put-bucket-policy --bucket "$BUCKET" --policy '{
-  "Version":"2012-10-17",
-  "Statement":[{"Sid":"PublicReadGetObject","Effect":"Allow","Principal":"*","Action":"s3:GetObject","Resource":"arn:aws:s3:::'"$BUCKET"'/*"}]
-}'
-```
-
-Cada vez que haya cambios en `frontend/` o un nuevo `ApiUrl` (por ejemplo tras recrear el stack en un Learner Lab), usa el script incluido — sube `index.html`, `profesor.html` y `panel-admin.html` como `profesor/index.html` y `panel-admin/index.html` (mismas rutas limpias que Django) e inyecta la URL de la API **solo en la copia subida**, sin tocar `00_env.js` del repo:
-
-```bash
-BUCKET=<tu-bucket> API_URL=<ApiUrl de sam deploy> \
-COGNITO_USER_POOL_ID=<AdminUserPoolId> \
-COGNITO_CLIENT_ID=<AdminUserPoolClientId> \
-COGNITO_HOSTED_UI_DOMAIN=<AdminHostedUiDomain> \
-./frontend/deploy-s3.sh
-```
-
-El sitio queda en `http://<bucket>.s3-website-<region>.amazonaws.com/`.
+Si ya existe una tabla SAM con datos, no apliques directamente: sigue
+[MIGRACION_TERRAFORM.md](MIGRACION_TERRAFORM.md) para importarla sin reemplazo.
 
 Consulta [MIGRACION.md](MIGRACION.md) para las reglas y la correspondencia Django → Serverless, y [REPORTE_ARQUITECTURA.md](REPORTE_ARQUITECTURA.md) para los patrones de diseño y los bugs corregidos en esta migración (timer/sincronización, roles IAM en Learner Lab).
 
 ## Resiliencia y FIS
 
 [`fis/finish-phase-experiments.yaml`](fis/finish-phase-experiments.yaml) contiene
-experimentos FIS explícitamente orientados a `FinishPhase`: latencia y errores
-transitorios. Consulta [`fis/README.md`](fis/README.md) antes de desplegarlos;
+experimentos FIS para `FinishPhase` (latencia y errores) y para pausar la
+replicación de la tabla global DynamoDB. Consulta [`fis/README.md`](fis/README.md) antes de desplegarlos;
 las acciones FIS para Lambda requieren su extensión y bucket de configuración.
 
 ## Verificación continua
 
 El workflow [`.github/workflows/verify.yml`](.github/workflows/verify.yml) se
 ejecuta en cada push y pull request: instala dependencias, corre tests, valida
-sintaxis JavaScript, SAM y la plantilla FIS.
+sintaxis JavaScript, Terraform, Ansible y la plantilla FIS.

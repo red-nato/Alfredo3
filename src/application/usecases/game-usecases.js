@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { DomainError } from '../../domain/errors.js';
 import { SESSION_STATUS, sessionCode } from '../../domain/entities/session.js';
 
@@ -8,9 +8,56 @@ const now = () => new Date().toISOString();
 const code = () => String(randomInt(0, 1_000_000)).padStart(6, '0');
 const teamName = (body) => required(bodyValue(body, 'nombre_equipo', 'nombreEquipo', 'equipo', 'teamName'), 'El nombre del equipo es requerido');
 const codeFrom = (body) => sessionCode(required(bodyValue(body, 'codigo', 'codigo_sesion', 'codigo_acceso', 'sessionCode'), 'El código de sesión es requerido'));
+const percentile = (values, ratio) => {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * ratio) - 1)];
+};
+const seconds = (milliseconds) => milliseconds == null ? null : Math.round(milliseconds / 100) / 10;
+
+export const summarizeAnalytics = (events) => {
+  const stages = {};
+  const teams = new Set();
+  let totalClicks = 0; let helpRequests = 0; let timeouts = 0; let completions = 0;
+  for (const event of events) {
+    const stage = Number(event.stage);
+    if (!Number.isInteger(stage) || stage < 1) continue;
+    const current = stages[stage] ??= { clicks: 0, durations: [], completions: 0, timeouts: 0, help_requests: 0 };
+    if (event.teamName) teams.add(`${event.sessionCode}:${event.teamName}`);
+    if (event.eventType === 'click') {
+      current.clicks += 1; totalClicks += 1;
+      if (String(event.action ?? '').toLowerCase().includes('help')) {
+        current.help_requests += 1; helpRequests += 1;
+      }
+    }
+    if (event.eventType === 'stage_complete') {
+      const duration = Number(event.durationMs);
+      if (Number.isFinite(duration) && duration >= 0) current.durations.push(duration);
+      current.completions += 1; completions += 1;
+      if (event.timedOut) { current.timeouts += 1; timeouts += 1; }
+    }
+  }
+  const porEtapa = Object.fromEntries(Object.entries(stages).map(([stage, value]) => [stage, {
+    clicks: value.clicks,
+    completions: value.completions,
+    timeouts: value.timeouts,
+    solicitudes_ayuda: value.help_requests,
+    tiempo_promedio_segundos: seconds(value.durations.length ? value.durations.reduce((sum, n) => sum + n, 0) / value.durations.length : null),
+    tiempo_p50_segundos: seconds(percentile(value.durations, 0.5)),
+    tiempo_p95_segundos: seconds(percentile(value.durations, 0.95)),
+  }]));
+  return {
+    interacciones_totales: events.length,
+    clicks_totales: totalClicks,
+    equipos_activos: teams.size,
+    solicitudes_ayuda: helpRequests,
+    tasa_timeout_porcentaje: completions ? Math.round((timeouts / completions) * 1000) / 10 : 0,
+    por_etapa: porEtapa,
+  };
+};
 
 export class GameUseCases {
-  constructor(repository) { this.repository = repository; }
+  constructor(repository, analyticsSink = { putEvents: async () => undefined }) { this.repository = repository; this.analyticsSink = analyticsSink; }
   async createSession(body = {}) {
     const metadata = { nombreProfesor: String(bodyValue(body, 'nombreProfesor', 'nombre_profesor') ?? 'Profesor Principal').trim(), facultad: String(body.facultad ?? 'Sin facultad registrada').trim(), modalidadGrupos: ['manual', 'excel'].includes(String(bodyValue(body, 'modalidadGrupos', 'modalidad_grupos') ?? 'manual').toLowerCase()) ? String(bodyValue(body, 'modalidadGrupos', 'modalidad_grupos') ?? 'manual').toLowerCase() : 'manual' };
     let session;
@@ -83,5 +130,50 @@ export class GameUseCases {
   }
   async teamReady(body) { const codigo = codeFrom(body); const nombre = teamName(body); const subStage = String(body.sub_stage ?? '').trim(); await this.repository.requireSession(codigo); await this.repository.updateTeam(codigo, nombre, { terminoFaseActual: true }); const teams = await this.repository.listTeams(codigo); if (teams.length && teams.every((team) => team.termino_fase_actual)) { const update = {}; if (subStage === 'prep') update.subFase = 'coins_intro'; if (subStage === 'coins_intro') { update.subFase = 'pitches'; const pending = teams.filter((team) => !team.ya_presento_pitch); const winner = pending[randomInt(pending.length)]?.nombre ?? null; update.ganadorRuleta = winner; update.equipoPresentando = winner; } if (Object.keys(update).length) await this.repository.updateSession(codigo, update); await this.repository.resetTeams(codigo, { terminoFaseActual: false }); } return { status: 'ok' }; }
   async finishPitch(body) { const codigo = codeFrom(body); const nombre = teamName(body); await this.repository.requireSession(codigo); await this.repository.updateTeam(codigo, nombre, { yaPresentoPitch: true }); const pending = (await this.repository.listTeams(codigo)).filter((team) => !team.ya_presento_pitch); const winner = pending[randomInt(pending.length)]?.nombre ?? null; await this.repository.updateSession(codigo, { ganadorRuleta: winner, equipoPresentando: winner }); return { status: 'ok' }; }
-  async adminStats() { const sessions = await this.repository.listSessions(); const data = []; for (const session of sessions) { const teams = await this.repository.listTeams(session.codigo); data.push({ id: session.codigo, codigo: session.codigo, estado: session.estado, fase_actual: session.faseActual, fecha_inicio: session.fechaInicio ?? null, fecha_fin: session.fechaFin ?? null, creado_en: session.creadoEn, nombreProfesor: session.nombreProfesor, facultad: session.facultad, modalidadGrupos: session.modalidadGrupos, cantidad_grupos: teams.length, cantidad_participantes: teams.reduce((n, team) => n + team.integrantes.length, 0), puntaje_total: teams.reduce((n, team) => n + team.puntaje_total, 0), grupos: teams }); } return { status: 'ok', total_equipos: data.reduce((n, session) => n + session.cantidad_grupos, 0), total_agentes: data.reduce((n, session) => n + session.cantidad_participantes, 0), sesiones: data }; }
+  async recordAnalytics(body = {}) {
+    const codigo = codeFrom(body); const nombre = teamName(body);
+    await this.repository.requireSession(codigo); await this.repository.requireTeam(codigo, nombre);
+    const incoming = Array.isArray(body.events) ? body.events : [];
+    if (!incoming.length || incoming.length > 25) throw new DomainError('Se requieren entre 1 y 25 eventos');
+    const allowed = new Set(['click', 'stage_enter', 'stage_complete', 'word_found']);
+    const receivedAt = now();
+    const events = incoming.map((event) => {
+      const eventType = String(event.type ?? event.eventType ?? '').trim();
+      if (!allowed.has(eventType)) throw new DomainError(`Tipo de evento no permitido: ${eventType}`);
+      const stage = Number(event.stage);
+      if (!Number.isInteger(stage) || stage < 0 || stage > 6) throw new DomainError('La etapa del evento es inválida');
+      const duration = event.durationMs == null ? null : Number(event.durationMs);
+      return {
+        eventId: String(event.eventId ?? randomUUID()).slice(0, 80), eventType, sessionCode: codigo,
+        teamName: nombre, stage, action: String(event.action ?? '').slice(0, 160),
+        durationMs: Number.isFinite(duration) ? Math.max(0, Math.round(duration)) : null,
+        timedOut: Boolean(event.timedOut), clientTimestamp: String(event.timestamp ?? '').slice(0, 40), timestamp: receivedAt,
+      };
+    });
+    await this.repository.recordAnalyticsEvents(events);
+    await this.analyticsSink.putEvents(events);
+    return { status: 'ok', accepted: events.length };
+  }
+  async adminStats() {
+    const sessions = await this.repository.listSessions(); const data = []; const allEvents = [];
+    for (const session of sessions) {
+      const [teams, events] = await Promise.all([this.repository.listTeams(session.codigo), this.repository.listAnalyticsEvents(session.codigo)]);
+      allEvents.push(...events);
+      data.push({ id: session.codigo, codigo: session.codigo, estado: session.estado, fase_actual: session.faseActual, fecha_inicio: session.fechaInicio ?? null, fecha_fin: session.fechaFin ?? null, creado_en: session.creadoEn, nombreProfesor: session.nombreProfesor, facultad: session.facultad, modalidadGrupos: session.modalidadGrupos, cantidad_grupos: teams.length, cantidad_participantes: teams.reduce((n, team) => n + team.integrantes.length, 0), puntaje_total: teams.reduce((n, team) => n + team.puntaje_total, 0), grupos: teams });
+    }
+    const totalTeams = data.reduce((n, session) => n + session.cantidad_grupos, 0); const totalPeople = data.reduce((n, session) => n + session.cantidad_participantes, 0);
+    const durationValues = data.map((session) => session.fecha_inicio && session.fecha_fin ? new Date(session.fecha_fin) - new Date(session.fecha_inicio) : null).filter((value) => Number.isFinite(value) && value >= 0);
+    const frequency = (field) => Object.entries(data.reduce((result, session) => { const value = session[field]; if (value) result[value] = (result[value] ?? 0) + 1; return result; }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    return {
+      status: 'ok', total_equipos: totalTeams, total_agentes: totalPeople, sesiones: data,
+      equipos: data.flatMap((session) => session.grupos.map((team) => ({ ...team, sesion: session.codigo }))),
+      metricas: {
+        total_sesiones: data.length, total_estudiantes: totalPeople, total_grupos: totalTeams,
+        promedio_estudiantes_por_grupo: totalTeams ? Math.round((totalPeople / totalTeams) * 10) / 10 : 0,
+        facultad_mas_frecuente: frequency('facultad'), profesor_con_mas_sesiones: frequency('nombreProfesor'), modalidad_mas_usada: frequency('modalidadGrupos'),
+        duracion_promedio: durationValues.length ? `${Math.round(durationValues.reduce((sum, value) => sum + value, 0) / durationValues.length / 6000) / 10} min` : null,
+        analytics: summarizeAnalytics(allEvents),
+      },
+    };
+  }
 }

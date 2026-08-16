@@ -1,0 +1,23 @@
+application_name              = "mision-emprende"
+environment                   = "dev"
+primary_region                = "us-east-1"
+replica_regions               = ["us-west-2"]
+execution_role_name           = "LabRole"
+dynamodb_deletion_protection  = true
+# Para demostrar failover sin borrar datos: game_dynamodb_primary_region = "us-west-2"
+# Para inyectar una caída segura del endpoint primario: game_dynamodb_primary_endpoint = "http://127.0.0.1:9"
+enable_cloudfront             = true
+
+# AWS Academy suele restringir CloudFront y regiones secundarias. En ese caso:
+# replica_regions  = []
+# enable_cloudfront = false
+
+# Para adoptar la tabla SAM existente, usa su nombre físico exacto y ejecuta
+# terraform import aws_dynamodb_table.game <nombre-fisico> antes del primer plan.
+# game_table_name = "stack-GameTable-XXXXXXXX"
+
+# FIS queda apagado hasta disponer del rol, alarma y extensión regional.
+enable_fis              = false
+fis_experiment_role_arn = ""
+fis_stop_alarm_arn      = ""
+fis_lambda_layer_arn    = ""

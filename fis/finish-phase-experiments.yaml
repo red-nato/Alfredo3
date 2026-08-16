@@ -13,6 +13,9 @@ Parameters:
   StopAlarmArn:
     Type: String
     Description: ARN de una alarma CloudWatch que detiene el experimento al detectar degradación.
+  GameGlobalTableArn:
+    Type: String
+    Description: ARN de la tabla global DynamoDB de pruebas.
 
 Resources:
   FinishPhaseLatencyExperiment:
@@ -67,8 +70,34 @@ Resources:
         Application: MisionEmprende
         Experiment: finish-phase-errors
 
+  DynamoDbReplicationPauseExperiment:
+    Type: AWS::FIS::ExperimentTemplate
+    Properties:
+      Description: Pausa durante cinco minutos la replicación multi-región de la tabla global.
+      RoleArn: !Ref FisExperimentRoleArn
+      StopConditions:
+        - Source: aws:cloudwatch:alarm
+          Value: !Ref StopAlarmArn
+      Targets:
+        GlobalTable:
+          ResourceType: aws:dynamodb:global-table
+          ResourceArns: [!Ref GameGlobalTableArn]
+          SelectionMode: COUNT(1)
+      Actions:
+        PauseGlobalTableReplication:
+          ActionId: aws:dynamodb:global-table-pause-replication
+          Parameters:
+            duration: PT5M
+          Targets:
+            Tables: GlobalTable
+      Tags:
+        Application: MisionEmprende
+        Experiment: dynamodb-replication-pause
+
 Outputs:
   FinishPhaseLatencyExperimentId:
     Value: !Ref FinishPhaseLatencyExperiment
   FinishPhaseErrorExperimentId:
     Value: !Ref FinishPhaseErrorExperiment
+  DynamoDbReplicationPauseExperimentId:
+    Value: !Ref DynamoDbReplicationPauseExperiment

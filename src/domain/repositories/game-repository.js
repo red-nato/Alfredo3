@@ -3,4 +3,6 @@ export class GameRepository {
   async createSession() { throw new Error('Not implemented'); }
   async getSession() { throw new Error('Not implemented'); }
   async registerTeam() { throw new Error('Not implemented'); }
+  async recordAnalyticsEvents() { throw new Error('Not implemented'); }
+  async listAnalyticsEvents() { throw new Error('Not implemented'); }
 }

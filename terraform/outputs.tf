@@ -1,0 +1,14 @@
+output "api_url" { value = "https://${aws_api_gateway_rest_api.game.id}.execute-api.${var.primary_region}.amazonaws.com/${aws_api_gateway_stage.prod.stage_name}" }
+output "frontend_url" { value = local.frontend_url }
+output "frontend_bucket_name" { value = aws_s3_bucket.frontend.bucket }
+output "cloudfront_distribution_id" { value = var.enable_cloudfront ? aws_cloudfront_distribution.frontend[0].id : "" }
+output "game_table_name" { value = aws_dynamodb_table.game.name }
+output "replica_regions" { value = sort(tolist(var.replica_regions)) }
+output "admin_user_pool_id" { value = aws_cognito_user_pool.lab_demo.id }
+output "admin_user_pool_client_id" { value = aws_cognito_user_pool_client.lab_demo.id }
+output "admin_hosted_ui_domain" { value = "https://${aws_cognito_user_pool_domain.admin.domain}.auth.${var.primary_region}.amazoncognito.com" }
+output "admin_cognito_issuer" { value = "https://cognito-idp.${var.primary_region}.amazonaws.com/${aws_cognito_user_pool.lab_demo.id}" }
+output "analytics_bucket_name" { value = aws_s3_bucket.analytics.bucket }
+output "analytics_database" { value = aws_glue_catalog_database.analytics.name }
+output "analytics_workgroup" { value = aws_athena_workgroup.analytics.name }
+output "analytics_query_results_location" { value = "s3://${aws_s3_bucket.analytics.bucket}/athena-results/" }

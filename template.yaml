@@ -64,6 +64,8 @@ Resources:
           RequireSymbols: true
       MfaConfiguration: OPTIONAL
       EnabledMfas: [SOFTWARE_TOKEN_MFA]
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
 
   AdminUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
@@ -72,11 +74,13 @@ Resources:
       UserPoolId: !Ref AdminUserPool
       GenerateSecret: false
       AllowedOAuthFlowsUserPoolClient: true
-      AllowedOAuthFlows: [implicit]
+      AllowedOAuthFlows: [code]
       AllowedOAuthScopes: [openid, profile, email]
       CallbackURLs: [!Ref FrontendCallbackUrl]
       LogoutURLs: [!Ref FrontendCallbackUrl]
       SupportedIdentityProviders: [COGNITO]
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
 
   AdminUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
@@ -205,6 +209,12 @@ Resources:
       <<: *GameFunction
       Handler: functions/finish-pitch/handler.handler
       Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/terminar-pitch, Method: post}}}
+  AnalyticsEventsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      <<: *GameFunction
+      Handler: functions/analytics-events/handler.handler
+      Events: {Api: {Type: Api, Properties: {RestApiId: !Ref GameApi, Path: /api/analytics/events, Method: post}}}
   AdminStatsFunction:
     Type: AWS::Serverless::Function
     Properties:

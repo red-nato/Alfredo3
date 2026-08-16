@@ -35,6 +35,7 @@ Object.assign(app, {
         },
         completedStages: {},
         phaseCompletionInFlight: null,
+        analytics: { queue: [], trackedStage: 0, stageStartedAt: null, completedStages: {}, flushing: false },
         personas: {
             adultos_mayores: [
                 {
@@ -109,6 +110,52 @@ Object.assign(app, {
         }
     },
 
+    trackStageEnter: function(stage) {
+        const value = Number(stage);
+        if (!Number.isInteger(value) || value < 1 || this.state.analytics.trackedStage === value) return;
+        const previous = this.state.analytics.trackedStage;
+        if (previous > 0 && !this.state.analytics.completedStages[previous] && this.state.analytics.stageStartedAt) {
+            this.trackInteraction('stage_complete', { stage: previous, durationMs: Date.now() - this.state.analytics.stageStartedAt, action: 'server_transition' });
+            this.state.analytics.completedStages[previous] = true;
+        }
+        this.state.analytics.trackedStage = value;
+        this.state.analytics.stageStartedAt = Date.now();
+        this.trackInteraction('stage_enter', { stage: value });
+    },
+
+    trackInteraction: function(type, details = {}) {
+        if (!this.state.sessionCode || !this.state.teamName) return;
+        const event = {
+            eventId: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+            type,
+            stage: Number(details.stage ?? this.state.currentStage ?? 0),
+            action: String(details.action ?? '').slice(0, 160),
+            durationMs: details.durationMs ?? null,
+            timedOut: Boolean(details.timedOut),
+            timestamp: new Date().toISOString(),
+        };
+        this.state.analytics.queue.push(event);
+        if (this.state.analytics.queue.length >= 10) this.flushAnalytics();
+    },
+
+    flushAnalytics: async function({ keepalive = false } = {}) {
+        const analytics = this.state.analytics;
+        if (analytics.flushing || !analytics.queue.length || !this.state.sessionCode || !this.state.teamName) return;
+        analytics.flushing = true;
+        const events = analytics.queue.splice(0, 25);
+        try {
+            const response = await apiFetch('/api/analytics/events', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive,
+                body: JSON.stringify({ codigo: this.state.sessionCode, nombre_equipo: this.state.teamName, events }),
+            });
+            if (!response.ok) throw new Error(`Analytics HTTP ${response.status}`);
+        } catch (_) {
+            analytics.queue.unshift(...events);
+        } finally {
+            analytics.flushing = false;
+        }
+    },
+
     init: function() {
         const page = document.body.dataset.page || 'game';
         if (page === 'professor') { this.showView('view-professor-login'); this.initProfessorLogin(); return; }
@@ -116,9 +163,20 @@ Object.assign(app, {
         this.showView('view-welcome');
     },
 
-    goHome:        function() { window.location.href = '/'; },
-    goToProfessor: function() { window.location.href = '/profesor/'; },
-    goToAdmin:     function() { window.location.href = '/panel-admin/'; },
+    frontendUrl: function(path = '') {
+        const configured = String(window.MISION_EMPRENDE_FRONTEND_BASE_URL || '').replace(/\/+$/, '');
+        // Cuando la app se abrió desde el endpoint REST de S3, todas las
+        // páginas deben permanecer en ese mismo bucket. Esto también protege
+        // contra una copia antigua de 00_env.js que todavía apunte a la API.
+        const isS3Frontend = /(^|\.)s3(?:[.-][a-z0-9-]+)?\.amazonaws\.com$/i.test(window.location.hostname);
+        const base = isS3Frontend ? window.location.origin : (configured || window.location.origin);
+        return `${base}/${String(path).replace(/^\/+/, '')}`;
+    },
+    // Usamos archivos explícitos porque el endpoint REST de S3 no aplica el
+    // documento índice de website hosting a rutas como /profesor/.
+    goHome:        function() { window.location.href = this.frontendUrl('index.html'); },
+    goToProfessor: function() { window.location.href = this.frontendUrl('profesor/index.html'); },
+    goToAdmin:     function() { window.location.href = this.frontendUrl('panel-admin/index.html'); },
 
     showView: function(viewId) {
         const current = document.querySelector('section.active');
@@ -174,6 +232,7 @@ Object.assign(app, {
         this.state.currentEvalTarget = null;
         this.state.completedStages = {};
         this.state.phaseCompletionInFlight = null;
+        this.state.analytics = { queue: [], trackedStage: 0, stageStartedAt: null, completedStages: {}, flushing: false };
 
         const tc = document.getElementById('token-count');
         const nd = document.getElementById('team-name-display');
@@ -271,6 +330,15 @@ Object.assign(app, {
         if (this.state.phaseCompletionInFlight === stage || this.state.currentStage !== stage) return;
 
         this.state.phaseCompletionInFlight = stage;
+        if (!this.state.analytics.completedStages[stage]) {
+            this.trackInteraction('stage_complete', {
+                stage,
+                timedOut,
+                durationMs: this.state.analytics.stageStartedAt ? Date.now() - this.state.analytics.stageStartedAt : null,
+            });
+            this.state.analytics.completedStages[stage] = true;
+        }
+        this.flushAnalytics();
         clearInterval(this.state.timerInterval);
         const timer = document.getElementById('global-timer');
         if (timer) timer.classList.add('hidden');
@@ -331,7 +399,7 @@ Object.assign(app, {
         btnConnect.disabled  = true;
 
         try {
-            const response = await apiFetch(`/api/validar-sesion/?codigo=${code}`);
+            const response = await apiFetch(`/api/validar-sesion?codigo=${code}`);
             const data     = await response.json();
             if (data.status === 'ok') {
                 this.playSound('success');

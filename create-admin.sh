@@ -4,8 +4,8 @@
 # verificación de email + agregar-a-grupo a mano cada vez que el stack de
 # AWS Academy Learner Lab se resetea y Cognito nace de cero.
 #
-# Uso (después de "sam deploy"):
-#   COGNITO_USER_POOL_ID=<AdminUserPoolId que imprime sam deploy> \
+# Uso (después de Terraform/Ansible):
+#   COGNITO_USER_POOL_ID=$(terraform -chdir=terraform output -raw admin_user_pool_id) \
 #   ./create-admin.sh
 #
 # ADMIN_EMAIL y ADMIN_PASSWORD se leen de un archivo local ".env.admin"
@@ -19,7 +19,7 @@ if [ -f "$SCRIPT_DIR/.env.admin" ]; then
   . "$SCRIPT_DIR/.env.admin"
 fi
 
-: "${COGNITO_USER_POOL_ID:?Define COGNITO_USER_POOL_ID=<AdminUserPoolId que imprime sam deploy>}"
+: "${COGNITO_USER_POOL_ID:?Define COGNITO_USER_POOL_ID=<admin_user_pool_id de Terraform>}"
 : "${ADMIN_EMAIL:?Falta ADMIN_EMAIL — cópialo desde .env.admin.example a .env.admin}"
 : "${ADMIN_PASSWORD:?Falta ADMIN_PASSWORD — cópialo desde .env.admin.example a .env.admin}"
 

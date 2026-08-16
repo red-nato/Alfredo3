@@ -8,6 +8,7 @@ Object.assign(app, {
     startStage1: function(type) {
         this.state.stage1Path   = type;
         this.state.currentStage = 1;
+        this.trackStageEnter(1);
         this.state.cardsDrawn   = 0;
 
         const titleEl    = document.getElementById('icebreaker-title');
@@ -69,58 +70,11 @@ Object.assign(app, {
     // bloqueada al encontrar la primera palabra y hacía imposible seleccionar
     // la segunda, por eso aquí no se permiten solapamientos de ningún tipo.
     generateWordSearch: function() {
-        const size  = this.state.wordSearch.size || 15;
-        const words   = [...this.state.wordSearch.words].sort((a, b) => b.length - a.length);
+        const size = this.state.wordSearch.size || 15;
         this.state.wordSearch.foundWords    = [];
         this.state.wordSearch.wordLocations = {};
-
-        // Solo horizontal (→) y vertical (↓) para evitar diagonales que complican la detección
-        const DIRECTIONS = [
-            { dr: 0, dc: 1 },  // horizontal
-            { dr: 1, dc: 0 },  // vertical
-        ];
-
-        let grid = [];
-        let locations = {};
-        // Reiniciar la grilla completa evita una sopa parcialmente generada. Con
-        // 15×15 y estas diez palabras, una pasada sin solapamientos entra holgadamente.
-        for (let boardAttempt = 0; boardAttempt < 50; boardAttempt += 1) {
-            const candidateGrid = new Array(size * size).fill('');
-            const candidateLocations = {};
-            const tryPlace = (word) => {
-                for (let attempt = 0; attempt < 600; attempt += 1) {
-                    const dir = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
-                    const maxRow = size - (dir.dr * (word.length - 1));
-                    const maxCol = size - (dir.dc * (word.length - 1));
-                    const row = Math.floor(Math.random() * maxRow);
-                    const col = Math.floor(Math.random() * maxCol);
-                    const indices = Array.from({ length: word.length }, (_, i) =>
-                        (row + dir.dr * i) * size + col + dir.dc * i
-                    );
-                    if (indices.some((idx) => candidateGrid[idx] !== '')) continue;
-                    indices.forEach((idx, i) => { candidateGrid[idx] = word[i]; });
-                    candidateLocations[word] = indices;
-                    return true;
-                }
-                return false;
-            };
-            if (shuffleArray(words).every(tryPlace)) {
-                grid = candidateGrid;
-                locations = candidateLocations;
-                break;
-            }
-        }
-
-        if (!grid.length) throw new Error('No se pudo generar una sopa de letras sin colisiones');
+        const { grid, locations } = WordSearchGenerator.generate({ size, words: this.state.wordSearch.words });
         this.state.wordSearch.wordLocations = locations;
-
-        // Relleno con letras que no son iniciales de palabras, para reducir falsos positivos
-        const FILL = "BCDFGHJKNPQRSTVWXYZ";
-        for (let i = 0; i < grid.length; i++) {
-            if (grid[i] === '') {
-                grid[i] = FILL[Math.floor(Math.random() * FILL.length)];
-            }
-        }
 
         // Renderizar lista de palabras a buscar
         const targetWordsDiv = document.getElementById('target-words-display');
@@ -178,6 +132,7 @@ Object.assign(app, {
 
     markWordAsFound: function(word, indices) {
         this.state.wordSearch.foundWords.push(word);
+        this.trackInteraction('word_found', { stage: 1, action: word });
         this.playSound('click');
 
         // Deselecciona todas las celdas primero
@@ -685,7 +640,7 @@ Object.assign(app, {
 
         const codigo = this.state.sessionCode || '';
         if (codigo) {
-            apiFetch(`/api/obtener-equipos/${codigo}/`)
+            apiFetch(`/api/obtener-equipos/${codigo}`)
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'ok' && data.equipos && data.equipos.length > 0) {
@@ -770,7 +725,7 @@ Object.assign(app, {
         document.getElementById('waiting-ready-text').classList.remove('hidden');
         this.playSound('click');
         try {
-            await apiFetch('/api/equipo-listo/', {
+            await apiFetch('/api/equipo-listo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ codigo: this.state.sessionCode, equipo: this.state.teamName, sub_stage: 'prep' })
@@ -784,7 +739,7 @@ Object.assign(app, {
         document.getElementById('waiting-pitches-text').classList.remove('hidden');
         this.playSound('click');
         try {
-            await apiFetch('/api/equipo-listo/', {
+            await apiFetch('/api/equipo-listo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ codigo: this.state.sessionCode, equipo: this.state.teamName, sub_stage: 'coins_intro' })
@@ -803,7 +758,7 @@ Object.assign(app, {
 
         // Avisar al servidor que libere el turno
         try {
-            await apiFetch('/api/terminar-pitch/', {
+            await apiFetch('/api/terminar-pitch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ codigo: this.state.sessionCode, equipo: this.state.teamName })
@@ -957,6 +912,12 @@ Object.assign(app, {
     },
 
     _showFinalResults: function() {
+        const trackedStage = this.state.analytics.trackedStage;
+        if (trackedStage > 0 && !this.state.analytics.completedStages[trackedStage] && this.state.analytics.stageStartedAt) {
+            this.trackInteraction('stage_complete', { stage: trackedStage, durationMs: Date.now() - this.state.analytics.stageStartedAt, action: 'final_results' });
+            this.state.analytics.completedStages[trackedStage] = true;
+            this.flushAnalytics();
+        }
         const myName  = this.state.teamName || "Tu Equipo";
         const myCoins = this.state.tokens;
         let ranking   = [...(this.state.ranking || [])];

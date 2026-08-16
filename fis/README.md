@@ -1,7 +1,8 @@
 # Experimentos FIS de FinishPhase
 
-Este stack crea dos plantillas de AWS Fault Injection Service (FIS): latencia
-del 25% y errores del 10%. No se ejecutan automáticamente ni deben desplegarse
+Este stack crea tres plantillas de AWS Fault Injection Service (FIS): latencia
+del 25%, errores del 10% y pausa de cinco minutos de la réplica global
+DynamoDB. No se ejecutan automáticamente ni deben desplegarse
 en producción.
 
 Las acciones `aws:lambda:function` requieren la extensión administrada de FIS
@@ -26,7 +27,8 @@ aws cloudformation deploy \
   --parameter-overrides \
     FinishPhaseFunctionArn=<arn-de-la-lambda-dev> \
     FisExperimentRoleArn=<arn-del-rol-fis> \
-    StopAlarmArn=<arn-de-alarma-cloudwatch>
+    StopAlarmArn=<arn-de-alarma-cloudwatch> \
+    GameGlobalTableArn=<arn-de-la-tabla-global-dev>
 ```
 
 Ejecuta una plantilla desde la consola de FIS y confirma que el frontend

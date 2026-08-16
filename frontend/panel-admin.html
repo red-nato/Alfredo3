@@ -33,10 +33,18 @@
                 <h2 class="text-4xl text-pink-500 font-bold font-8bit mt-4">ADMIN</h2>
                 <p class="text-gray-400 text-xs font-mono mt-2 tracking-widest">ACCESO ADMINISTRATIVO</p>
             </div>
-            <p class="text-gray-300 text-sm leading-relaxed">Inicia sesión con una cuenta autorizada del grupo <span class="text-pink-400 font-bold">Admins</span>. Las credenciales ya no se guardan en el navegador.</p>
-            <button onclick="app.adminLogin()" class="mt-8 w-full bg-pink-600 hover:bg-pink-500 text-white font-8bit py-4 rounded-xl shadow-[0_6px_0_#9d174d] active:shadow-[0_0_0_#9d174d] active:translate-y-2 transition-all">
-                <i class="fas fa-shield-alt mr-2"></i> INICIAR SESIÓN SEGURA
-            </button>
+            <p class="text-gray-300 text-sm leading-relaxed">Acceso mediante Cognito para usuarios del grupo <span class="text-pink-400 font-bold">Admins</span>.</p>
+            <form onsubmit="app.adminPasswordLogin(event)" class="mt-6 space-y-4 text-left">
+                <label class="block text-xs text-gray-400 uppercase">Usuario
+                    <input id="admin-login-username" value="shlam" autocomplete="username" required class="mt-2 w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white">
+                </label>
+                <label class="block text-xs text-gray-400 uppercase">Contraseña
+                    <input id="admin-login-password" type="password" autocomplete="current-password" required class="mt-2 w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white">
+                </label>
+                <button id="admin-login-submit" type="submit" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-8bit py-4 rounded-xl shadow-[0_6px_0_#9d174d] active:shadow-none active:translate-y-2 transition-all">
+                    <i class="fas fa-shield-alt mr-2"></i> INGRESAR
+                </button>
+            </form>
             <button onclick="app.goHome()" class="mt-6 text-gray-500 text-xs font-mono hover:text-white transition uppercase">Volver al inicio</button>
         </div>
     </section>
@@ -67,6 +75,28 @@
                 </div>
 
                 <div id="admin-metrics-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8"></div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-black/90 border border-gray-800 rounded-2xl p-5">
+                        <h2 class="text-xl text-white font-bold">Clics por etapa</h2>
+                        <p class="text-gray-500 text-sm mb-4">Volumen comparado de interacción.</p>
+                        <div id="admin-clicks-chart" class="space-y-3"></div>
+                    </div>
+                    <div class="bg-black/90 border border-gray-800 rounded-2xl p-5">
+                        <h2 class="text-xl text-white font-bold">Tiempo promedio por etapa</h2>
+                        <p class="text-gray-500 text-sm mb-4">Duración media hasta completar cada etapa.</p>
+                        <div id="admin-duration-chart" class="space-y-3"></div>
+                    </div>
+                </div>
+
+                <div class="bg-black/90 border border-gray-800 rounded-2xl p-5 mb-6 overflow-x-auto">
+                    <h2 class="text-xl text-white font-bold mb-1">KPI de interacción por etapa</h2>
+                    <p class="text-gray-500 text-sm mb-4">Tiempos p50/p95, clics, uso de ayuda y abandonos por tiempo.</p>
+                    <table class="min-w-full text-sm">
+                        <thead><tr class="text-left text-gray-400 border-b border-gray-700"><th class="p-3">Etapa</th><th class="p-3">Tiempo prom.</th><th class="p-3">p50 / p95</th><th class="p-3">Clics</th><th class="p-3">Completados</th><th class="p-3">Timeouts</th><th class="p-3">Ayuda</th></tr></thead>
+                        <tbody id="admin-stage-kpis"></tbody>
+                    </table>
+                </div>
 
                 <div class="bg-black/90 border border-gray-800 rounded-2xl p-5 mb-6">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
@@ -106,6 +136,20 @@
             </div>
 
             <div id="tab-config" class="tab-content hidden max-w-5xl mx-auto">
+                <div class="bg-black border border-gray-800 rounded-2xl p-6 mb-6">
+                    <h2 class="text-xl text-white font-bold mb-2">Administradores de Cognito</h2>
+                    <p class="text-gray-400 text-sm mb-5">Crea una cuenta con contraseña permanente y acceso al grupo <span class="text-pink-400 font-bold">Admins</span>.</p>
+                    <form id="admin-create-user-form" onsubmit="app.adminCreateUser(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <label class="text-sm text-gray-300">Correo
+                            <input id="new-admin-email" type="email" autocomplete="off" required class="mt-2 w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white" placeholder="admin@ejemplo.cl">
+                        </label>
+                        <label class="text-sm text-gray-300">Contraseña
+                            <input id="new-admin-password" type="password" autocomplete="new-password" minlength="4" required class="mt-2 w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white" placeholder="4+ caracteres (solo lab)">
+                        </label>
+                        <button id="new-admin-submit" type="submit" class="bg-pink-600 hover:bg-pink-500 text-white font-bold px-5 py-3 rounded-xl transition"><i class="fas fa-user-shield mr-2"></i>Crear administrador</button>
+                    </form>
+                    <p class="text-yellow-500 text-xs mt-3">Política simplificada para demostración en AWS Lab. No usar en producción.</p>
+                </div>
                 <div class="flex justify-between items-center mb-6 bg-black p-4 rounded-xl border-l-4 border-pink-500">
                     <p class="text-gray-300 font-mono text-sm"><i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i> Editar parámetros del juego. Los cambios aplican a las nuevas fases iniciadas.</p>
                     <button onclick="app.resetPhaseConfigToDefaults()" class="bg-gray-800 text-white font-bold py-2 px-4 border border-gray-600 rounded hover:bg-gray-700 transition"><i class="fas fa-undo mr-2"></i>Restaurar valores por defecto</button>
@@ -120,11 +164,12 @@
     <audio id="sfx-click" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" preload="auto"></audio>
     <audio id="sfx-success" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3" preload="auto"></audio>
     <audio id="sfx-error" src="https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3" preload="auto"></audio>
-    <script src="/static/misionemprende/js/00_env.js"></script>
+    <script src="/static/misionemprende/js/00_env.js?v=20260812-route-fix"></script>
 
 
     <script src="/static/misionemprende/js/01_config.js"></script>
-    <script src="/static/misionemprende/js/02_core.js"></script>
+    <script src="/static/misionemprende/js/02_core.js?v=20260812-route-fix"></script>
+    <script src="/static/misionemprende/js/word-search-generator.js"></script>
     <script src="/static/misionemprende/js/03_fases.js"></script>
     <script src="/static/misionemprende/js/04_admin.js"></script>
     <script src="/static/misionemprende/js/05_globals.js"></script>
