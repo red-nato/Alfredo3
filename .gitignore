@@ -2,3 +2,10 @@ node_modules/
 .aws-sam/
 coverage/
 .env
+.env.admin
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/backend.zip
+terraform/tfplan
+terraform/terraform.tfvars

@@ -1,0 +1,75 @@
+---
+- name: Desplegar Mision Emprende con Terraform
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    project_dir: "{{ playbook_dir }}/.."
+    terraform_dir: "{{ project_dir }}/terraform"
+    terraform_var_file: "{{ terraform_dir }}/terraform.tfvars"
+    create_admin: false
+
+  tasks:
+    - name: Verificar herramientas requeridas
+      ansible.builtin.command:
+        argv: ["{{ item }}", "--version"]
+      loop: [node, npm, terraform, aws]
+      changed_when: false
+
+    - name: Instalar dependencias Lambda reproducibles
+      ansible.builtin.command:
+        argv: ["npm", "ci", "--prefix", "{{ project_dir }}/src"]
+      register: npm_ci
+      changed_when: "'added' in npm_ci.stdout or 'changed' in npm_ci.stdout"
+
+    - name: Inicializar Terraform
+      ansible.builtin.command:
+        argv: ["terraform", "-chdir={{ terraform_dir }}", "init", "-input=false"]
+      changed_when: false
+
+    - name: Validar Terraform
+      ansible.builtin.command:
+        argv: ["terraform", "-chdir={{ terraform_dir }}", "validate"]
+      changed_when: false
+
+    - name: Crear plan revisable
+      ansible.builtin.command:
+        argv: ["terraform", "-chdir={{ terraform_dir }}", "plan", "-input=false", "-out=tfplan", "-var-file={{ terraform_var_file }}"]
+      changed_when: true
+
+    - name: Aplicar el plan aprobado por la ejecución del playbook
+      ansible.builtin.command:
+        argv: ["terraform", "-chdir={{ terraform_dir }}", "apply", "-input=false", "-auto-approve", "tfplan"]
+      changed_when: true
+
+    - name: Leer salidas de Terraform
+      ansible.builtin.command:
+        argv: ["terraform", "-chdir={{ terraform_dir }}", "output", "-json"]
+      register: terraform_outputs_raw
+      changed_when: false
+
+    - name: Preparar salidas de despliegue
+      ansible.builtin.set_fact:
+        tfout: "{{ terraform_outputs_raw.stdout | from_json }}"
+
+    - name: Publicar frontend privado para CloudFront o API Gateway
+      ansible.builtin.command:
+        argv: ["{{ project_dir }}/frontend/deploy-s3.sh"]
+      environment:
+        BUCKET: "{{ tfout.frontend_bucket_name.value }}"
+        API_URL: "{{ tfout.api_url.value }}"
+        FRONTEND_URL: "{{ tfout.frontend_url.value }}"
+        COGNITO_USER_POOL_ID: "{{ tfout.admin_user_pool_id.value }}"
+        COGNITO_CLIENT_ID: "{{ tfout.admin_user_pool_client_id.value }}"
+        COGNITO_HOSTED_UI_DOMAIN: "{{ tfout.admin_hosted_ui_domain.value }}"
+        COGNITO_ISSUER: "{{ tfout.admin_cognito_issuer.value }}"
+        DISTRIBUTION_ID: "{{ tfout.cloudfront_distribution_id.value }}"
+      changed_when: true
+
+    - name: Crear o actualizar el primer administrador
+      ansible.builtin.command:
+        argv: ["{{ project_dir }}/create-admin.sh"]
+      environment:
+        COGNITO_USER_POOL_ID: "{{ tfout.admin_user_pool_id.value }}"
+      when: create_admin | bool
+      no_log: true

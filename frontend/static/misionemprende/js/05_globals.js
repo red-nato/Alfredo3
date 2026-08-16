@@ -98,7 +98,7 @@ async function enviarEquipoAlBackend() {
         const payload = { nombre_equipo: nombreEquipo, codigo, carrera_principal: integrantes[0]?.carrera || "Sin definir", integrantes };
 
         let response;
-        try { response = await apiFetch("/api/registrar-equipo/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); }
+        try { response = await apiFetch("/api/registrar-equipo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); }
         catch(e) { app.showToast("No se pudo conectar con el servidor.", 'error'); return; }
 
         let resultado = {};
@@ -142,5 +142,13 @@ window.onload = function() {
             this.audioEnabled = true;
         }
     }, { once: true });
+    document.body.addEventListener('click', function(event) {
+        const target = event.target.closest('button, [role="button"], [onclick]');
+        if (!target) return;
+        const action = target.dataset.analyticsAction || target.id || target.getAttribute('onclick') || target.textContent?.trim() || target.tagName;
+        app.trackInteraction('click', { action });
+    });
+    window.setInterval(() => app.flushAnalytics(), 5000);
+    window.addEventListener('pagehide', () => app.flushAnalytics({ keepalive: true }));
     app.init();
 };

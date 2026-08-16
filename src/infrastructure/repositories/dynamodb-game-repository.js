@@ -20,8 +20,16 @@ export class DynamoGameRepository extends GameRepository {
     if (!tableName) throw new Error('GAME_TABLE_NAME es requerido');
     this.client = client; this.tableName = tableName;
   }
+  get activeRegion() { return this.client.activeRegion ?? process.env.GAME_DYNAMODB_PRIMARY_REGION ?? process.env.AWS_REGION; }
   async createSession(session) {
-    await this.client.send(new PutCommand({ TableName: this.tableName, Item: { ...metaKey(session.codigo), entityType: 'SESSION', ...session, GSI2PK: 'SESSION', GSI2SK: session.creadoEn }, ConditionExpression: 'attribute_not_exists(PK)' }));
+    const commandForRegion = (region) => new PutCommand({
+      TableName: this.tableName,
+      Item: { ...metaKey(session.codigo), entityType: 'SESSION', ...session, writeRegion: region, GSI2PK: 'SESSION', GSI2SK: session.creadoEn },
+      ConditionExpression: 'attribute_not_exists(PK)',
+    });
+    if (typeof this.client.sendWithRegion === 'function') await this.client.sendWithRegion(commandForRegion);
+    else await this.client.send(commandForRegion(this.activeRegion));
+    session.writeRegion = this.activeRegion;
     return session;
   }
   async getSession(codigo) {
@@ -69,6 +77,26 @@ export class DynamoGameRepository extends GameRepository {
     const names = {}; const values = {}; const sets = Object.entries(attributes).map(([property, value], index) => { const n = `#n${index}`; const v = `:v${index}`; names[n] = property; values[v] = value; return `${n} = ${v}`; });
     await this.client.send(new UpdateCommand({ TableName: this.tableName, Key: metaKey(codigo), UpdateExpression: `SET ${sets.join(', ')}`, ExpressionAttributeNames: names, ExpressionAttributeValues: values, ConditionExpression: 'attribute_exists(PK)' }));
   }
+  async advanceSessionIfCurrentStage(codigo, expectedStage, attributes) {
+    const names = { '#phase': 'faseActual' }; const values = { ':expected': expectedStage };
+    const sets = Object.entries(attributes).map(([property, value], index) => {
+      const n = `#n${index}`; const v = `:v${index}`; names[n] = property; values[v] = value; return `${n} = ${v}`;
+    });
+    try {
+      await this.client.send(new UpdateCommand({
+        TableName: this.tableName,
+        Key: metaKey(codigo),
+        UpdateExpression: `SET ${sets.join(', ')}`,
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+        ConditionExpression: 'attribute_exists(PK) AND #phase = :expected',
+      }));
+      return true;
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') return false;
+      throw error;
+    }
+  }
   async updateTeam(codigo, nombre, attributes) {
     const names = {}; const values = {}; const sets = Object.entries(attributes).map(([property, value], index) => { const n = `#n${index}`; const v = `:v${index}`; names[n] = property; values[v] = value; return `${n} = ${v}`; });
     await this.client.send(new UpdateCommand({ TableName: this.tableName, Key: teamKey(codigo, nombre), UpdateExpression: `SET ${sets.join(', ')}`, ExpressionAttributeNames: names, ExpressionAttributeValues: values, ConditionExpression: 'attribute_exists(PK)' }));
@@ -85,6 +113,44 @@ export class DynamoGameRepository extends GameRepository {
   async listSessions() {
     const response = await this.client.send(new QueryCommand({ TableName: this.tableName, IndexName: 'GSI2', KeyConditionExpression: 'GSI2PK = :pk', ExpressionAttributeValues: { ':pk': 'SESSION' }, ScanIndexForward: false }));
     return response.Items ?? [];
+  }
+  async recordAnalyticsEvents(events) {
+    for (let offset = 0; offset < events.length; offset += 25) {
+      let requests = events.slice(offset, offset + 25).map((event) => ({
+        PutRequest: {
+          Item: {
+            PK: key(event.sessionCode),
+            // El eventId estable hace que un reintento del batch sobrescriba el
+            // mismo evento en vez de inflar clics o duraciones.
+            SK: `ANALYTICS#${event.eventId}`,
+            entityType: 'ANALYTICS_EVENT',
+            ...event,
+          },
+        },
+      }));
+      for (let attempt = 0; requests.length && attempt < 4; attempt += 1) {
+        const response = await this.client.send(new BatchWriteCommand({
+          RequestItems: { [this.tableName]: requests },
+        }));
+        requests = response.UnprocessedItems?.[this.tableName] ?? [];
+      }
+      if (requests.length) throw new Error('DynamoDB no pudo persistir todos los eventos analíticos');
+    }
+  }
+  async listAnalyticsEvents(codigo) {
+    const events = [];
+    let ExclusiveStartKey;
+    do {
+      const response = await this.client.send(new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :analytics)',
+        ExpressionAttributeValues: { ':pk': key(codigo), ':analytics': 'ANALYTICS#' },
+        ExclusiveStartKey,
+      }));
+      events.push(...(response.Items ?? []));
+      ExclusiveStartKey = response.LastEvaluatedKey;
+    } while (ExclusiveStartKey);
+    return events;
   }
   async touchTeam(codigo, nombre) { return this.updateTeam(codigo, nombre, { ultimaConexion: new Date().toISOString() }); }
   async getAdmin(username) {

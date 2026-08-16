@@ -6,44 +6,183 @@ Object.assign(app, {
     // -------------------------------------------------------------
     // 1. LOGIN Y NAVEGACIÓN ADMIN
     // -------------------------------------------------------------
+    _adminRedirectUri: function() {
+        return this.frontendUrl('panel-admin/index.html');
+    },
+
+    initAdminAuth: async function() {
+        const params = new URLSearchParams(window.location.search);
+        try {
+            if (params.get('error')) throw new Error(params.get('error_description') || params.get('error'));
+            if (params.get('code')) await this._exchangeAdminCode(params.get('code'), params.get('state'));
+            if (this.getAdminToken()) this.openAdminDashboard();
+            else this.showView('view-admin-login');
+        } catch (error) {
+            this._clearAdminSession();
+            this.showView('view-admin-login');
+            this.showToast(error.message || 'No se pudo validar la sesión administrativa.', 'error');
+        } finally {
+            if (params.get('code') || params.get('error')) history.replaceState(null, document.title, window.location.pathname);
+        }
+    },
+
+    _decodeJwtPayload: function(token) {
+        const encoded = String(token || '').split('.')[1];
+        if (!encoded) throw new Error('Cognito devolvió un token inválido.');
+        const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(encoded.length / 4) * 4, '=');
+        return JSON.parse(decodeURIComponent(Array.from(atob(normalized), c => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`).join('')));
+    },
+
+    _validateAdminToken: function(idToken) {
+        const config = window.MISION_EMPRENDE_COGNITO || {};
+        const claims = this._decodeJwtPayload(idToken);
+        const groups = Array.isArray(claims['cognito:groups']) ? claims['cognito:groups'] : [];
+        if (claims.token_use !== 'id' || claims.aud !== config.clientId || claims.iss !== config.issuer || Number(claims.exp) * 1000 <= Date.now()) {
+            throw new Error('El token administrativo no corresponde a este despliegue o ya expiró.');
+        }
+        if (!groups.includes('Admins')) throw new Error('La cuenta no pertenece al grupo Cognito Admins.');
+        return claims;
+    },
+
+    _clearAdminSession: function() {
+        sessionStorage.removeItem('misionEmprendeAdminSession');
+        sessionStorage.removeItem('misionEmprendeAdminPkce');
+    },
+
+    _exchangeAdminCode: async function(code, returnedState) {
+        const config = window.MISION_EMPRENDE_COGNITO || {};
+        const pkce = JSON.parse(sessionStorage.getItem('misionEmprendeAdminPkce') || '{}');
+        if (!pkce.verifier || !pkce.state || returnedState !== pkce.state) throw new Error('La respuesta de autenticación no superó la validación CSRF/PKCE.');
+        const redirectUri = this._adminRedirectUri();
+        const body = new URLSearchParams({ grant_type: 'authorization_code', client_id: config.clientId, code, redirect_uri: redirectUri, code_verifier: pkce.verifier });
+        const response = await fetch(`${config.hostedUiDomain}/oauth2/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        const tokens = await response.json();
+        if (!response.ok || !tokens.id_token) throw new Error(tokens.error_description || 'Cognito rechazó el código de autorización.');
+        const claims = this._validateAdminToken(tokens.id_token);
+        sessionStorage.setItem('misionEmprendeAdminSession', JSON.stringify({ idToken: tokens.id_token, expiresAt: Number(claims.exp) * 1000 }));
+        sessionStorage.removeItem('misionEmprendeAdminPkce');
+    },
+
+    getAdminToken: function() {
+        try {
+            const session = JSON.parse(sessionStorage.getItem('misionEmprendeAdminSession') || '{}');
+            if (!session.idToken || Number(session.expiresAt) <= Date.now()) return null;
+            this._validateAdminToken(session.idToken);
+            return session.idToken;
+        } catch (_) {
+            this._clearAdminSession();
+            return null;
+        }
+    },
+
     adminLogin: async function() {
-    const user = document.getElementById('admin-user').value.trim();
-    const pass = document.getElementById('admin-pass').value;
-
-    try {
-        const response = await apiFetch('/api/admin/login/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: user, password: pass }),
+        if (this.getAdminToken()) {
+            this.openAdminDashboard();
+            return;
+        }
+        const config = window.MISION_EMPRENDE_COGNITO || {};
+        if (!config.clientId || !config.hostedUiDomain || !config.issuer) {
+            this.showToast('Falta configurar Cognito en el despliegue del frontend.', 'error');
+            return;
+        }
+        const redirectUri = this._adminRedirectUri();
+        const random = new Uint8Array(32); crypto.getRandomValues(random);
+        const verifier = Array.from(random, value => value.toString(16).padStart(2, '0')).join('');
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+        const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const stateBytes = new Uint8Array(24); crypto.getRandomValues(stateBytes);
+        const state = Array.from(stateBytes, value => value.toString(16).padStart(2, '0')).join('');
+        sessionStorage.setItem('misionEmprendeAdminPkce', JSON.stringify({ verifier, state }));
+        const query = new URLSearchParams({
+            client_id: config.clientId,
+            response_type: 'code',
+            scope: 'openid profile email',
+            redirect_uri: redirectUri,
+            state,
+            code_challenge: challenge,
+            code_challenge_method: 'S256',
         });
-        const data = await response.json();
-        if (!response.ok || data.status !== 'ok') throw new Error(data.error || 'Acceso denegado.');
+        window.location.assign(`${config.hostedUiDomain}/oauth2/authorize?${query.toString()}`);
+    },
 
-        sessionStorage.setItem('misionEmprendeAdminToken', data.token);
+    adminPasswordLogin: async function(event) {
+        event?.preventDefault();
+        const usernameInput = document.getElementById('admin-login-username');
+        const passwordInput = document.getElementById('admin-login-password');
+        const button = document.getElementById('admin-login-submit');
+        const config = window.MISION_EMPRENDE_COGNITO || {};
+        const enteredUsername = String(usernameInput?.value || '').trim().toLowerCase();
+        const cognitoUsername = enteredUsername;
+        if (button) button.disabled = true;
+        try {
+            const region = String(config.issuer || '').match(/cognito-idp\.([^.]+)\.amazonaws\.com/)?.[1] || 'us-east-1';
+            const callCognito = (target, body) => fetch(`https://cognito-idp.${region}.amazonaws.com/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': `AWSCognitoIdentityProviderService.${target}` },
+                body: JSON.stringify(body),
+            });
+            const startResponse = await callCognito('InitiateAuth', { AuthFlow: 'CUSTOM_AUTH', ClientId: config.clientId, AuthParameters: { USERNAME: cognitoUsername } });
+            const start = await startResponse.json();
+            if (!startResponse.ok || start.ChallengeName !== 'CUSTOM_CHALLENGE') throw new Error(start.message || start.__type || 'Cognito no inició el desafío');
+            const response = await callCognito('RespondToAuthChallenge', {
+                ClientId: config.clientId,
+                ChallengeName: 'CUSTOM_CHALLENGE',
+                Session: start.Session,
+                ChallengeResponses: { USERNAME: cognitoUsername, ANSWER: passwordInput?.value || '' },
+            });
+            const data = await response.json();
+            const idToken = data.AuthenticationResult?.IdToken;
+            if (!response.ok || !idToken) throw new Error(data.message || data.__type || 'Cognito rechazó las credenciales');
+            const claims = this._validateAdminToken(idToken);
+            sessionStorage.setItem('misionEmprendeAdminSession', JSON.stringify({ idToken, expiresAt: Number(claims.exp) * 1000 }));
+            if (passwordInput) passwordInput.value = '';
+            this.openAdminDashboard();
+        } catch (error) {
+            this.showToast(error.message || 'No se pudo iniciar sesión', 'error');
+        } finally {
+            if (button) button.disabled = false;
+        }
+    },
+
+    openAdminDashboard: function() {
         this.playSound('success');
         this.showView('view-admin-dashboard');
-
         setTimeout(() => {
             this.loadAdminData();
             this._renderAdminConfigPanel();
             this._switchAdminTab('teams');
         }, 100);
-    } catch (error) {
-        this.playSound('error');
-        this.showToast(error.message || 'Acceso denegado.', 'error');
-        const passEl = document.getElementById('admin-pass');
-        if (passEl) {
-            passEl.classList.add('border-red-500','animate-shake');
-            setTimeout(() => passEl.classList.remove('border-red-500','animate-shake'), 500);
-        }
-    }
-},
+    },
 
     adminLogout: function() {
-    apiFetch('/api/admin/logout/', { method: 'POST' }).catch(() => {});
-    sessionStorage.removeItem('misionEmprendeAdminToken');
-    this.goHome();
-},
+        this._clearAdminSession();
+        this.showView('view-admin-login');
+    },
+
+    adminCreateUser: async function(event) {
+        event?.preventDefault();
+        const email = document.getElementById('new-admin-email')?.value.trim();
+        const passwordInput = document.getElementById('new-admin-password');
+        const password = passwordInput?.value || '';
+        const button = document.getElementById('new-admin-submit');
+        if (button) button.disabled = true;
+        try {
+            const response = await apiFetch('/api/admin/users', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Cognito rechazó la cuenta');
+            if (passwordInput) passwordInput.value = '';
+            const emailInput = document.getElementById('new-admin-email');
+            if (emailInput) emailInput.value = '';
+            this.showToast(`Administrador ${data.usuario.email} creado`, 'success');
+        } catch (error) {
+            this.showToast(error.message || 'No se pudo crear el administrador', 'error');
+        } finally {
+            if (button) button.disabled = false;
+        }
+    },
 
     _switchAdminTab: function(tab) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -70,7 +209,7 @@ Object.assign(app, {
         const grid = document.getElementById('admin-teams-grid');
         if (grid) grid.innerHTML = '<p class="text-gray-400 ml-4 animate-pulse">Consultando registros...</p>';
 
-        apiFetch('/api/admin-stats/')
+        apiFetch('/api/admin-stats')
         .then(res => res.json())
         .then(data => {
             if (data.status === 'ok') {
@@ -92,6 +231,7 @@ Object.assign(app, {
     renderAdminMetrics: function(metrics) {
         const grid = document.getElementById('admin-metrics-grid');
         if (!grid) return;
+        const analytics = metrics.analytics || {};
         const cards = [
             ['Sesiones registradas', metrics.total_sesiones ?? 0, 'Total de ejecuciones guardadas en el sistema'],
             ['Participantes registrados', metrics.total_estudiantes ?? 0, 'Total de estudiantes asociados a sesiones'],
@@ -101,6 +241,10 @@ Object.assign(app, {
             ['Profesor con más sesiones', metrics.profesor_con_mas_sesiones || 'Sin datos suficientes', 'Docente con mayor número de registros'],
             ['Modalidad más usada', metrics.modalidad_mas_usada || 'Sin datos suficientes', 'Manual, Excel o no especificada'],
             ['Duración promedio', metrics.duracion_promedio || 'Sin datos suficientes', 'Solo se calcula si existe inicio y término'],
+            ['Clics registrados', analytics.clicks_totales ?? 0, 'Interacciones capturadas en todas las etapas'],
+            ['Equipos activos', analytics.equipos_activos ?? 0, 'Equipos que emitieron eventos analíticos'],
+            ['Uso de ayuda', analytics.solicitudes_ayuda ?? 0, 'Aperturas del asistente durante el juego'],
+            ['Tasa de timeout', `${analytics.tasa_timeout_porcentaje ?? 0}%`, 'Finalizaciones provocadas por agotar el tiempo'],
         ];
         grid.innerHTML = cards.map(([title, value, desc]) => `
             <div class="bg-black border border-gray-800 p-5 rounded-2xl shadow-lg">
@@ -109,6 +253,39 @@ Object.assign(app, {
                 <p class="text-gray-500 text-xs mt-2">${desc}</p>
             </div>
         `).join('');
+        const table = document.getElementById('admin-stage-kpis');
+        if (table) {
+            const stages = Object.entries(analytics.por_etapa || {});
+            table.innerHTML = stages.length ? stages.map(([stage, kpi]) => `
+                <tr class="border-b border-gray-800 text-gray-300">
+                    <td class="p-3 font-bold text-pink-400">${stage}</td><td class="p-3">${kpi.tiempo_promedio_segundos ?? '—'} s</td>
+                    <td class="p-3">${kpi.tiempo_p50_segundos ?? '—'} / ${kpi.tiempo_p95_segundos ?? '—'} s</td>
+                    <td class="p-3">${kpi.clicks}</td><td class="p-3">${kpi.completions}</td><td class="p-3">${kpi.timeouts}</td><td class="p-3">${kpi.solicitudes_ayuda}</td>
+                </tr>`).join('') : '<tr><td colspan="7" class="p-4 text-gray-500">Aún no hay eventos de interacción.</td></tr>';
+        }
+        this.renderAdminCharts(analytics.por_etapa || {});
+    },
+
+    renderAdminCharts: function(byStage) {
+        const rows = Object.entries(byStage).sort(([a], [b]) => Number(a) - Number(b));
+        const renderBars = (id, field, suffix, color) => {
+            const target = document.getElementById(id);
+            if (!target) return;
+            if (!rows.length) { target.innerHTML = '<p class="text-gray-500 py-6">Genera eventos para visualizar esta gráfica.</p>'; return; }
+            const values = rows.map(([, kpi]) => Number(kpi[field]) || 0);
+            const max = Math.max(...values, 1);
+            target.innerHTML = rows.map(([stage], index) => {
+                const value = values[index];
+                const width = Math.max(value ? 4 : 0, Math.round(value / max * 100));
+                return `<div class="grid grid-cols-[5rem_1fr_5rem] gap-3 items-center text-sm">
+                    <span class="text-gray-400">Etapa ${stage}</span>
+                    <div class="h-6 bg-gray-800 rounded overflow-hidden"><div class="h-full ${color} rounded transition-all" style="width:${width}%"></div></div>
+                    <span class="text-white text-right font-mono">${value}${suffix}</span>
+                </div>`;
+            }).join('');
+        };
+        renderBars('admin-clicks-chart', 'clicks', '', 'bg-pink-500');
+        renderBars('admin-duration-chart', 'tiempo_promedio_segundos', ' s', 'bg-cyan-500');
     },
 
     renderAdminTeams: function(teams) {
@@ -125,11 +302,11 @@ Object.assign(app, {
                     <button onclick="app.adminDeleteTeam('${team.id || team.nombre}')" class="absolute top-3 right-3 text-gray-600 hover:text-red-500 transition" title="Eliminar grupo">
                         <i class="fas fa-trash"></i>
                     </button>
-                    <div class="text-xs text-pink-500 font-mono mb-2">SESIÓN: ${team.codigo_sesion}</div>
+                    <div class="text-xs text-pink-500 font-mono mb-2">SESIÓN: ${team.sesion || '—'}</div>
                     <h3 class="text-xl font-bold text-white mb-2 truncate uppercase">${team.nombre}</h3>
                     <div class="text-xs text-gray-500 mb-2">Puntaje acumulado: ${team.puntaje_total || 0}</div>
                     <div class="bg-gray-900 p-3 rounded text-xs text-gray-400 leading-relaxed h-20 overflow-y-auto">
-                        ${(team.miembros || []).map(m => `• ${m}`).join('<br>') || 'Sin participantes registrados'}
+                        ${(team.miembros || []).map(m => `• ${m.nombre || m}`).join('<br>') || 'Sin participantes registrados'}
                     </div>
                 </div>
             `;
@@ -540,7 +717,7 @@ Object.assign(app, {
         const codeDisplay = document.getElementById('prof-session-code');
         if (codeDisplay) codeDisplay.innerText = "CONECTANDO...";
 
-        apiFetch('/api/crear-sesion/', {
+        apiFetch('/api/crear-sesion', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(sessionPayload || { modalidadGrupos: 'manual' })
@@ -584,7 +761,7 @@ Object.assign(app, {
         if (this.pollingInterval) clearInterval(this.pollingInterval);
 
         this.pollingInterval = setInterval(() => {
-            apiFetch(`/api/obtener-equipos/${codigoSesion}/`)
+            apiFetch(`/api/obtener-equipos/${codigoSesion}`)
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'ok') {
@@ -624,7 +801,7 @@ Object.assign(app, {
     },
 
     profesorStartGame: async function() {
-        await apiFetch(`/api/admin/start/?codigo=${this.currentSessionCode}`, { method: 'POST' }).catch(() => {});
+        await apiFetch(`/api/admin/start?codigo=${this.currentSessionCode}`, { method: 'POST' }).catch(() => {});
         this.showToast("Juego Iniciado. Equipos sincronizados.", "success");
         
         const btnStart = document.getElementById('btn-prof-start');
@@ -641,7 +818,7 @@ Object.assign(app, {
 
     profesorNextStage: async function() {
         if (confirm("¿Estás seguro de forzar a todos los equipos a la siguiente fase?")) {
-            await apiFetch(`/api/admin/next/?codigo=${this.currentSessionCode}`, { method: 'POST' }).catch(() => {});
+            await apiFetch(`/api/admin/next?codigo=${this.currentSessionCode}`, { method: 'POST' }).catch(() => {});
             this.showToast("Avanzando a la siguiente fase...", "success");
         }
     },
@@ -649,7 +826,7 @@ Object.assign(app, {
     profesorTogglePause: async function() {
         const btn = document.getElementById('btn-prof-pause');
         const isPausing = btn && btn.innerText.includes("PAUSAR");
-        await apiFetch(`/api/admin/pause/?codigo=${this.currentSessionCode}&state=${isPausing}`, { method: 'POST' }).catch(() => {});
+        await apiFetch(`/api/admin/pause?codigo=${this.currentSessionCode}&state=${isPausing}`, { method: 'POST' }).catch(() => {});
         if (btn) {
             if (isPausing) { btn.innerHTML = '<i class="fas fa-play mr-3"></i> REANUDAR JUEGO'; btn.classList.replace('bg-yellow-500','bg-green-500'); }
             else           { btn.innerHTML = '<i class="fas fa-pause mr-3"></i> PAUSAR TODOS';  btn.classList.replace('bg-green-500','bg-yellow-500'); }
@@ -790,7 +967,7 @@ Object.assign(app, {
         this.globalSyncInterval = setInterval(async () => {
             if (!this.state.sessionCode || !this.state.teamName) return;
             try {
-                const response = await apiFetch(`/api/estado-juego/?codigo=${this.state.sessionCode}&equipo=${this.state.teamName}`);
+                const response = await apiFetch(`/api/estado-juego?codigo=${this.state.sessionCode}&equipo=${this.state.teamName}`);
                 const data     = await response.json();
                 if (data.status === 'ok') this.handleServerState(data);
                 else if (data.status === 'kicked') this.handleKicked();
@@ -826,8 +1003,12 @@ Object.assign(app, {
 
         if (serverData.current_stage > this.state.currentStage) {
             this.state.currentStage = serverData.current_stage;
+            this.trackStageEnter(serverData.current_stage);
+            this.state.phaseCompletionInFlight = null;
             const section = document.getElementById('view-transition');
             if (section) section.classList.add('hidden');
+            const timeoutOverlay = document.getElementById('phase-transition-overlay');
+            if (timeoutOverlay) timeoutOverlay.classList.add('hidden');
             
             if (this.state.currentStage === 1) this.playLobbyIntro('view-stage1-intro'); 
             else if (this.state.currentStage === 2) this.showView('view-stage2-topics');
@@ -917,3 +1098,5 @@ Object.assign(app, {
         }, 3000);
     }
 });
+
+window.getMisionEmprendeAdminToken = () => app.getAdminToken?.() || null;

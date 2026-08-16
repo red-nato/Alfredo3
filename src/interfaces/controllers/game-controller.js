@@ -1,17 +1,39 @@
 import { DomainError } from '../../domain/errors.js';
 import { sessionCode } from '../../domain/entities/session.js';
-import { bearerToken } from './auth-controller.js';
 
-const response = (statusCode, body) => ({ statusCode, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(body) });
-const parseBody = (event) => { if (!event.body) return {}; try { return JSON.parse(event.body); } catch { throw new DomainError('JSON inválido'); } };
-const ADMIN_OPERATIONS = new Set(['start', 'pause', 'next', 'adminStats']);
+const response = (statusCode, body, dataRegion) => ({ statusCode, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'X-Mision-Data-Region', ...(dataRegion ? { 'X-Mision-Data-Region': dataRegion } : {}) }, body: JSON.stringify(body) });
+const parseBody = (event) => {
+  if (!event.body) return {};
+  try {
+    const body = event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf8') : event.body;
+    return JSON.parse(body);
+  } catch {
+    throw new DomainError('JSON inválido');
+  }
+};
+const adminOperations = new Set(['start', 'pause', 'next', 'adminStats']);
+const isAdmin = (event) => {
+  const claim = event.requestContext?.authorizer?.claims?.['cognito:groups'];
+  let groups = Array.isArray(claim) ? claim : String(claim ?? '').split(',');
+  if (typeof claim === 'string' && claim.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(claim);
+      if (Array.isArray(parsed)) groups = parsed;
+    } catch {
+      // API Gateway también puede entregar los grupos como texto separado por comas.
+    }
+  }
+  return groups
+    .map((group) => String(group).trim().replace(/^[\["']+|[\]"']+$/g, ''))
+    .includes('Admins');
+};
 
 export class GameController {
-  constructor(useCases, authUseCases) { this.useCases = useCases; this.authUseCases = authUseCases; }
+  constructor(useCases) { this.useCases = useCases; }
   async handle(operation, event) {
     try {
-      if (ADMIN_OPERATIONS.has(operation)) await this.authUseCases.verify(bearerToken(event));
       const query = event.queryStringParameters ?? {}; const body = ['getTeams', 'validateSession', 'gameState', 'start', 'pause', 'next', 'adminStats'].includes(operation) ? query : parseBody(event);
+      if (adminOperations.has(operation) && !isAdmin(event)) throw new DomainError('Se requiere un usuario del grupo Admins', 403);
       let result;
       switch (operation) {
         case 'createSession': result = await this.useCases.createSession(body); break;
@@ -27,9 +49,10 @@ export class GameController {
         case 'teamReady': result = await this.useCases.teamReady(body); break;
         case 'finishPitch': result = await this.useCases.finishPitch(body); break;
         case 'adminStats': result = await this.useCases.adminStats(); break;
+        case 'recordAnalytics': result = await this.useCases.recordAnalytics(body); break;
         default: throw new Error(`Operación desconocida: ${operation}`);
       }
-      return response(result.status === 'error' ? 404 : 200, result);
+      return response(result.status === 'error' ? 404 : 200, result, this.useCases.repository?.activeRegion);
     } catch (error) {
       if (error instanceof DomainError) return response(error.statusCode, { error: error.message });
       console.error(error); return response(500, { error: 'Error interno' });

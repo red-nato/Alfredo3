@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Experimentos AWS Fault Injection Service para comprobar que FinishPhase
+  tolera latencia y errores transitorios. Desplegar solo en una cuenta/stage de pruebas.
+
+Parameters:
+  FinishPhaseFunctionArn:
+    Type: String
+    Description: ARN de la Lambda FinishPhase (no un alias) del ambiente de pruebas.
+  FisExperimentRoleArn:
+    Type: String
+    Description: ARN de un rol existente asumible por fis.amazonaws.com.
+  StopAlarmArn:
+    Type: String
+    Description: ARN de una alarma CloudWatch que detiene el experimento al detectar degradación.
+  GameGlobalTableArn:
+    Type: String
+    Description: ARN de la tabla global DynamoDB de pruebas.
+
+Resources:
+  FinishPhaseLatencyExperiment:
+    Type: AWS::FIS::ExperimentTemplate
+    Properties:
+      Description: Añade 3 segundos al 25% de invocaciones de FinishPhase durante dos minutos.
+      RoleArn: !Ref FisExperimentRoleArn
+      StopConditions:
+        - Source: aws:cloudwatch:alarm
+          Value: !Ref StopAlarmArn
+      Targets:
+        FinishPhase:
+          ResourceType: aws:lambda:function
+          ResourceArns: [!Ref FinishPhaseFunctionArn]
+          SelectionMode: COUNT(1)
+      Actions:
+        AddInvocationDelay:
+          ActionId: aws:lambda:invocation-add-delay
+          Parameters:
+            duration: PT2M
+            invocationPercentage: '25'
+            startupDelayMilliseconds: '3000'
+          Targets:
+            Functions: FinishPhase
+      Tags:
+        Application: MisionEmprende
+        Experiment: finish-phase-latency
+
+  FinishPhaseErrorExperiment:
+    Type: AWS::FIS::ExperimentTemplate
+    Properties:
+      Description: Devuelve errores controlados en el 10% de FinishPhase durante un minuto.
+      RoleArn: !Ref FisExperimentRoleArn
+      StopConditions:
+        - Source: aws:cloudwatch:alarm
+          Value: !Ref StopAlarmArn
+      Targets:
+        FinishPhase:
+          ResourceType: aws:lambda:function
+          ResourceArns: [!Ref FinishPhaseFunctionArn]
+          SelectionMode: COUNT(1)
+      Actions:
+        InjectInvocationError:
+          ActionId: aws:lambda:invocation-error
+          Parameters:
+            duration: PT1M
+            invocationPercentage: '10'
+            preventExecution: 'true'
+          Targets:
+            Functions: FinishPhase
+      Tags:
+        Application: MisionEmprende
+        Experiment: finish-phase-errors
+
+  DynamoDbReplicationPauseExperiment:
+    Type: AWS::FIS::ExperimentTemplate
+    Properties:
+      Description: Pausa durante cinco minutos la replicación multi-región de la tabla global.
+      RoleArn: !Ref FisExperimentRoleArn
+      StopConditions:
+        - Source: aws:cloudwatch:alarm
+          Value: !Ref StopAlarmArn
+      Targets:
+        GlobalTable:
+          ResourceType: aws:dynamodb:global-table
+          ResourceArns: [!Ref GameGlobalTableArn]
+          SelectionMode: COUNT(1)
+      Actions:
+        PauseGlobalTableReplication:
+          ActionId: aws:dynamodb:global-table-pause-replication
+          Parameters:
+            duration: PT5M
+          Targets:
+            Tables: GlobalTable
+      Tags:
+        Application: MisionEmprende
+        Experiment: dynamodb-replication-pause
+
+Outputs:
+  FinishPhaseLatencyExperimentId:
+    Value: !Ref FinishPhaseLatencyExperiment
+  FinishPhaseErrorExperimentId:
+    Value: !Ref FinishPhaseErrorExperiment
+  DynamoDbReplicationPauseExperimentId:
+    Value: !Ref DynamoDbReplicationPauseExperiment

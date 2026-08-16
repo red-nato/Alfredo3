@@ -8,6 +8,7 @@ Object.assign(app, {
     startStage1: function(type) {
         this.state.stage1Path   = type;
         this.state.currentStage = 1;
+        this.trackStageEnter(1);
         this.state.cardsDrawn   = 0;
 
         const titleEl    = document.getElementById('icebreaker-title');
@@ -50,124 +51,30 @@ Object.assign(app, {
         this.generateWordSearch();
         this.showView('view-stage1-game');
         const timerMin = PHASE_CONFIG[1] ? PHASE_CONFIG[1].timerMin : 3;
-        this.startTimer(timerMin);
+        this.startTimer(timerMin, () => this.finishCurrentPhase(1, { timedOut: true }));
     },
 
-    completeStage1: function() {
+    completeStage1: async function() {
+        if (this.state.completedStages?.[1]) return;
         clearInterval(this.state.timerInterval);
         const display = document.getElementById('global-timer');
         if (display) display.classList.add('hidden');
         const coins = PHASE_CONFIG[1] ? PHASE_CONFIG[1].coinsFirst : 5;
         this.addTokens(coins);
-
-        this.triggerTransition(
-            "¡Trabajo en equipo completado!",
-            "Se conocieron, comunicaron y colaboraron. Eso es la base de todo equipo emprendedor. Ahora viene lo más importante: entender a alguien que necesita su ayuda.",
-            10,
-            () => { this.showView('view-stage2-topics'); this.state.currentStage = 2; this.startTimer(8); },
-            1
-        );
+        this.state.completedStages = { ...(this.state.completedStages || {}), 1: true };
+        await this.finishCurrentPhase(1);
     },
 
     // ── SOPA DE LETRAS MEJORADA ──────────────────────────────────
-    // Corrección: detección de colisión estricta, sin solapamiento de letras.
-    // Solo permite compartir celda si la letra EXACTA coincide y la celda
-    // ya fue asignada a OTRA palabra diferente (intersección genuina).
-    // Para máxima seguridad se usa modo "sin intersección" por defecto.
+    // Cada palabra ocupa celdas exclusivas. Una intersección deja la celda
+    // bloqueada al encontrar la primera palabra y hacía imposible seleccionar
+    // la segunda, por eso aquí no se permiten solapamientos de ningún tipo.
     generateWordSearch: function() {
-        const size  = this.state.wordSearch.size || 15;
-        // grid[idx] = letra colocada, owner[idx] = nombre de la palabra dueña
-        const grid    = new Array(size * size).fill('');
-        const owner   = new Array(size * size).fill(null);
-        const words   = [...this.state.wordSearch.words].sort((a, b) => b.length - a.length);
+        const size = this.state.wordSearch.size || 15;
         this.state.wordSearch.foundWords    = [];
         this.state.wordSearch.wordLocations = {};
-
-        // Solo horizontal (→) y vertical (↓) para evitar diagonales que complican la detección
-        const DIRECTIONS = [
-            { dr: 0, dc: 1 },  // horizontal
-            { dr: 1, dc: 0 },  // vertical
-        ];
-
-        const tryPlace = (word) => {
-            const shuffledDirs = shuffleArray(DIRECTIONS);
-            // Intentamos muchas posiciones aleatorias
-            for (let attempt = 0; attempt < 1200; attempt++) {
-                const dir    = shuffledDirs[attempt % shuffledDirs.length];
-                const maxRow = dir.dr === 0 ? size     : size - word.length;
-                const maxCol = dir.dc === 0 ? size     : size - word.length;
-                if (maxRow <= 0 || maxCol <= 0) continue;
-
-                const row = Math.floor(Math.random() * maxRow);
-                const col = Math.floor(Math.random() * maxCol);
-
-                let canPlace = true;
-                const indices = [];
-
-                for (let i = 0; i < word.length; i++) {
-                    const r   = row + dir.dr * i;
-                    const c   = col + dir.dc * i;
-                    const idx = r * size + c;
-                    const existing = grid[idx];
-
-                    if (existing === '') {
-                        // Celda libre: OK
-                        indices.push({ idx, letter: word[i], shared: false });
-                    } else if (existing === word[i] && owner[idx] !== null && owner[idx] !== word) {
-                        // MISMO carácter de otra palabra: intersección válida
-                        // Solo permitimos 1 intersección por palabra para simplicidad
-                        const alreadyShared = indices.some(x => x.shared);
-                        if (!alreadyShared) {
-                            indices.push({ idx, letter: word[i], shared: true });
-                        } else {
-                            // Más de una intersección: rechazamos para evitar ambigüedad
-                            canPlace = false;
-                            break;
-                        }
-                    } else {
-                        // Conflicto de letras distintas o misma palabra → no se puede
-                        canPlace = false;
-                        break;
-                    }
-                }
-
-                if (canPlace && indices.length === word.length) {
-                    const wordIndices = [];
-                    indices.forEach(({ idx, letter, shared }) => {
-                        if (!shared) {
-                            grid[idx]  = letter;
-                            owner[idx] = word;
-                        }
-                        wordIndices.push(idx);
-                    });
-                    this.state.wordSearch.wordLocations[word] = wordIndices;
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        // Primera pasada
-        const notPlaced = [];
-        words.forEach(word => {
-            if (!tryPlace(word)) notPlaced.push(word);
-        });
-
-        // Segunda pasada para palabras que no entraron
-        notPlaced.forEach(word => {
-            if (!tryPlace(word)) {
-                console.warn(`No se pudo colocar la palabra: "${word}". Se omite.`);
-                delete this.state.wordSearch.wordLocations[word];
-            }
-        });
-
-        // Relleno con letras que no son iniciales de palabras, para reducir falsos positivos
-        const FILL = "BCDFGHJKNPQRSTVWXYZ";
-        for (let i = 0; i < grid.length; i++) {
-            if (grid[i] === '') {
-                grid[i] = FILL[Math.floor(Math.random() * FILL.length)];
-            }
-        }
+        const { grid, locations } = WordSearchGenerator.generate({ size, words: this.state.wordSearch.words });
+        this.state.wordSearch.wordLocations = locations;
 
         // Renderizar lista de palabras a buscar
         const targetWordsDiv = document.getElementById('target-words-display');
@@ -225,6 +132,7 @@ Object.assign(app, {
 
     markWordAsFound: function(word, indices) {
         this.state.wordSearch.foundWords.push(word);
+        this.trackInteraction('word_found', { stage: 1, action: word });
         this.playSound('click');
 
         // Deselecciona todas las celdas primero
@@ -259,6 +167,13 @@ Object.assign(app, {
             this.playSound('fanfare');
             this.showToast("¡Encontraron todas las palabras! ¡Excelente trabajo en equipo! 🎉", "success");
         }
+    },
+
+    revealWordSearchSolutions: function() {
+        Object.values(this.state.wordSearch.wordLocations).flat().forEach((idx) => {
+            const cell = document.querySelector(`.letter-cell[data-index='${idx}']`);
+            if (cell) cell.classList.add('correct-word');
+        });
     },
 
     triggerTransition: function(title, message, seconds, onCompleteCallback, phaseNumber) {
@@ -531,7 +446,7 @@ Object.assign(app, {
 
         this.showView('view-stage2-challenge-detail');
         const timerMin = PHASE_CONFIG[2] ? PHASE_CONFIG[2].timerMin : 8;
-        this.startTimer(timerMin);
+        this.startTimer(timerMin, () => this.finishCurrentPhase(2, { timedOut: true }));
     },
 
     completeStage2: function() {
@@ -571,7 +486,7 @@ Object.assign(app, {
             }
         }
         const timerMin = PHASE_CONFIG[3] ? PHASE_CONFIG[3].timerMin : 10;
-        this.startTimer(timerMin);
+        this.startTimer(timerMin, () => this.finishCurrentPhase(3, { timedOut: true }));
     },
 
     newPrompt: function() {
@@ -725,7 +640,7 @@ Object.assign(app, {
 
         const codigo = this.state.sessionCode || '';
         if (codigo) {
-            apiFetch(`/api/obtener-equipos/${codigo}/`)
+            apiFetch(`/api/obtener-equipos/${codigo}`)
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'ok' && data.equipos && data.equipos.length > 0) {
@@ -810,7 +725,7 @@ Object.assign(app, {
         document.getElementById('waiting-ready-text').classList.remove('hidden');
         this.playSound('click');
         try {
-            await apiFetch('/api/equipo-listo/', {
+            await apiFetch('/api/equipo-listo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ codigo: this.state.sessionCode, equipo: this.state.teamName, sub_stage: 'prep' })
@@ -824,7 +739,7 @@ Object.assign(app, {
         document.getElementById('waiting-pitches-text').classList.remove('hidden');
         this.playSound('click');
         try {
-            await apiFetch('/api/equipo-listo/', {
+            await apiFetch('/api/equipo-listo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ codigo: this.state.sessionCode, equipo: this.state.teamName, sub_stage: 'coins_intro' })
@@ -843,7 +758,7 @@ Object.assign(app, {
 
         // Avisar al servidor que libere el turno
         try {
-            await apiFetch('/api/terminar-pitch/', {
+            await apiFetch('/api/terminar-pitch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ codigo: this.state.sessionCode, equipo: this.state.teamName })
@@ -997,6 +912,12 @@ Object.assign(app, {
     },
 
     _showFinalResults: function() {
+        const trackedStage = this.state.analytics.trackedStage;
+        if (trackedStage > 0 && !this.state.analytics.completedStages[trackedStage] && this.state.analytics.stageStartedAt) {
+            this.trackInteraction('stage_complete', { stage: trackedStage, durationMs: Date.now() - this.state.analytics.stageStartedAt, action: 'final_results' });
+            this.state.analytics.completedStages[trackedStage] = true;
+            this.flushAnalytics();
+        }
         const myName  = this.state.teamName || "Tu Equipo";
         const myCoins = this.state.tokens;
         let ranking   = [...(this.state.ranking || [])];

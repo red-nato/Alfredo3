@@ -1,0 +1,51 @@
+name: Verify upload
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install infrastructure linters
+        run: pip install cfn-lint ansible-core
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Install backend dependencies
+        run: npm ci --prefix src
+
+      - name: Run unit tests
+        run: npm test --prefix src
+
+      - name: Check JavaScript syntax
+        run: find src frontend/static/misionemprende/js -path '*/node_modules' -prune -o -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Validate Terraform infrastructure
+        run: |
+          terraform -chdir=terraform fmt -check
+          terraform -chdir=terraform init -backend=false
+          terraform -chdir=terraform validate
+
+      - name: Validate Ansible deployment
+        run: ansible-playbook ansible/deploy.yml --syntax-check
+
+      - name: Validate FIS experiment template
+        run: cfn-lint fis/finish-phase-experiments.yaml
