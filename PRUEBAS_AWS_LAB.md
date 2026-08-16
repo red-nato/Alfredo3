@@ -114,7 +114,7 @@ El backend intenta la región preferida y, ante una tabla inexistente o un error
 Para simular que la aplicación perdió por completo la tabla primaria, inyecta un endpoint local cerrado. Esto no borra datos: la conexión a este falla y el mismo request continúa automáticamente en oeste.
 
 ```bash
-AWS_PROFILE=academy TF_VAR_demo_admin_code=1234 terraform -chdir=terraform apply \
+AWS_PROFILE=academy TF_VAR_demo_admin_code="$DEMO_ADMIN_CODE" terraform -chdir=terraform apply \
   -var-file=terraform.tfvars \
   -var='game_dynamodb_primary_endpoint=http://127.0.0.1:9'
 ```
@@ -145,7 +145,7 @@ done
 Para volver a la región normal:
 
 ```bash
-AWS_PROFILE=academy TF_VAR_demo_admin_code=1234 terraform -chdir=terraform apply \
+AWS_PROFILE=academy TF_VAR_demo_admin_code="$DEMO_ADMIN_CODE" terraform -chdir=terraform apply \
   -var-file=terraform.tfvars \
   -var='game_dynamodb_primary_endpoint='
 ```

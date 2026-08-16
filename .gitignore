@@ -1,11 +1,25 @@
 node_modules/
 .aws-sam/
 coverage/
+
+# Configuración local y secretos
 .env
-.env.admin
+.env.*
+!.env.example
+!.env.*.example
+
+# Archivos personales del sistema y asistentes
+.DS_Store
+.claude/
+.continue/
+
+# Artefactos y estado local de Terraform
 terraform/.terraform/
 terraform/*.tfstate
 terraform/*.tfstate.*
 terraform/backend.zip
-terraform/tfplan
-terraform/terraform.tfvars
+terraform/tfplan*
+terraform/*.tfvars
+!terraform/*.tfvars.example
+terraform/crash.log
+terraform/crash.*.log

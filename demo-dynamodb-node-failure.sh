@@ -7,7 +7,7 @@ API_URL="${API_URL:-https://3mm6y2gvu1.execute-api.us-east-1.amazonaws.com/Prod}
 # Terraform también evalúa variables compartidas durante un apply dirigido.
 # Conservamos el código del pool demo para que la prueba DynamoDB no vacíe la
 # configuración de Cognito. Se puede sobreescribir mediante DEMO_ADMIN_CODE.
-DEMO_ADMIN_CODE="${DEMO_ADMIN_CODE:-1234}"
+: "${DEMO_ADMIN_CODE:?Define DEMO_ADMIN_CODE fuera de Git}"
 DEMO_TMP=""
 
 cleanup() {

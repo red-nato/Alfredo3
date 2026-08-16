@@ -17,7 +17,7 @@
 ### Para revisar métricas en administrador
 - Entrar a https://mision-emprende-frontend-695835257252.s3.us-east-1.amazonaws.com/index.html
 - Bajar hasta encontrar "Accesos especiales", presionar "Administrador".
-- En el acceso Admin, el usuario es "shlam" y contraseña "1234" (tuvimos que hacer un pool de Cognito aislado, un flujo de autenticación personalizado,  para que no requiera volver a inicializar al prender el laboratorio. Este código funciona como un desafío personalizado, no como una contraseña estándar de Cognito).
+- En el acceso Admin, el usuario es "shlam" y contraseña "<CÓDIGO_DEMO_CONFIGURADO_FUERA_DE_GIT>" (tuvimos que hacer un pool de Cognito aislado, un flujo de autenticación personalizado,  para que no requiera volver a inicializar al prender el laboratorio. Este código funciona como un desafío personalizado, no como una contraseña estándar de Cognito).
 - Una vez dentro, esperar unos segundos a que carguen todas las métricas. Si después de unos segundos no se actualizan, puede refrescar la página.
 
 
